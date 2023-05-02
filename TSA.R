@@ -4,19 +4,24 @@ library(xts)
 library(tidyverse)
 library(quantmod)
 library(lmtest)
+library(forecast)
 library(dygraphs)
 
 
 getwd()
-getwd()
+setwd("D://UW//2. Summer 22-23//1. Time Series Analysis//Project//TSA")
+
+
 source("testdf.R")
+source("function_plot_ACF_PACF_resids.R")
+
 Data <- read.csv("TSA_2023_project_data_1.csv",header = TRUE, dec = ".")
 
 #2. Summary Data
 
 
 Data %>% glimpse()
-structure(Data)
+str(Data)
 glimpse(Data)
 
 #Notice that the first column is the Date column, which is under "Character" type
@@ -166,3 +171,311 @@ testdf(variable = residuals(model.coint), max.augmentations = 3)
 #The cointegrating vector is [1, -29.890 , -0.713]
 
 #which defines the cointegrating relationship as: 1 * x1 - 29.890 - 0.713 * x2.
+
+# 4. Applying Box-Jenkins procedure for Time Series X1:
+
+# Step 1: Model Parameters:  
+par(mfrow = c(2, 1)) 
+acf(Data$dx1,
+    lag.max = 36, # max lag for ACF
+    ylim = c(-0.1, 0.1),   # limits for the y axis - we give c(min, max)
+    lwd = 5,               
+    col = "dark green",
+    na.action = na.pass)   # do not stop if there are missing values in the data
+pacf(Data$dx1, 
+     lag.max = 36, 
+     lwd = 5, col = "dark green",
+     na.action = na.pass)
+
+par(mfrow = c(1, 1)) # restore the original single panel
+
+#The PACF shown is suggestive of an AR(5) model. 
+#So an initial candidate model is an ARIMA(5,1,0). 
+#We also have some variations of this model: ARIMA(5,1,1), ARIMA(4,1,0),ARIMA(3,1,0).
+
+
+#Step 2 - model estimation
+
+arima510 <- Arima(Data$x1,  # variable	
+                  order = c(5, 1, 0)  # (p,d,q) parameters	
+)	
+coeftest(arima510)
+summary(arima510)
+
+#The above model is not included constant. Let's include constant into the model: 
+arima510_2 <- Arima(Data$x1,  # variable	
+                  order = c(5, 1, 0),  # (p,d,q) parameters
+                  include.constant = TRUE)  # including a constant
+)
+coeftest(arima510_2)
+#Adding the constant did not change the result much, so we keep the model without constant
+
+#Step 3 - model diagnostics
+#Method 1:
+plot(resid(arima510))
+
+
+#Method 2:
+tibble(
+  date = index(Data),
+  resid = arima510 %>% resid() %>% as.numeric()
+) %>%
+  ggplot(aes(date, resid)) +
+  geom_line(col = "royalblue3") +
+  theme_bw()
+
+#Lets check the ACF and the PACF of the Residual values:
+
+#Method 1:
+par(mfrow = c(2, 1)) 
+acf(resid(arima510), 
+    lag.max = 36,
+    ylim = c(-0.1, 0.1), 
+    lwd = 5, col = "dark green",
+    na.action = na.pass)
+pacf(resid(arima510), 
+     lag.max = 36, 
+     lwd = 5, col = "dark green",
+     na.action = na.pass)
+par(mfrow = c(1, 1))
+
+#Method 2:
+plot_ACF_PACF_resids(arima510)
+
+# The Ljung-Box test (for a maximum of 10 lags):
+
+Box.test(resid(arima510), type = "Ljung-Box", lag = 10)
+Box.test(resid(arima510), type = "Ljung-Box", lag = 15)
+Box.test(resid(arima510), type = "Ljung-Box", lag = 20)
+Box.test(resid(arima510), type = "Ljung-Box", lag = 25)
+
+#-> Very large p-values: The residual is white-noise  
+
+#Plot graph for Ljung-Box test:
+bj_pvalues = c()
+
+for(i in c(1:100)){
+  bj = Box.test(resid(arima510), type = "Ljung-Box", lag = i)
+  bj_pvalues = append(bj_pvalues,bj$p.value)
+}
+
+plot(bj_pvalues, type='l')
+
+abline(h=0.05, col='red', type='l')
+
+
+#Model ARIMA(5,1,1)
+
+arima511 <- Arima(Data$x1,  # variable	
+                    order = c(5, 1, 1),  # (p,d,q) parameters
+                    include.constant = TRUE)  # including a constant
+)
+coeftest(arima511)
+
+#ARIMA(4,1,0)
+arima410 <- Arima(Data$x1,  # variable	
+                  order = c(4, 1, 0),  # (p,d,q) parameters
+                  include.constant = TRUE)  # including a constant
+)
+coeftest(arima410)
+
+#ARIMA(3,1,0).
+arima310 <- Arima(Data$x1,  # variable	
+                  order = c(3, 1, 0),  # (p,d,q) parameters
+                  include.constant = TRUE)  # including a constant
+)
+coeftest(arima310)
+
+#Step 4. Evaluate Model:
+
+AIC(arima510,arima510_2, arima511, arima410, arima310)
+BIC(arima510, arima510_2, arima511, arima410, arima310)
+
+#-> Suggestion ARIMA(5,1,0)
+
+#Cross check with Auto Correlation:
+
+arima.best.AIC <- 
+  auto.arima(Data$x1,
+             d = 1,             # parameter d of ARIMA model
+             max.p = 6,         # Maximum value of p
+             max.q = 6,         # Maximum value of q
+             max.order = 12,    # maximum p+q
+             start.p = 1,       # Starting value of p in stepwise procedure
+             start.q = 1,       # Starting value of q in stepwise procedure
+             ic = "aic",        # Information criterion to be used in model selection.
+             stepwise = FALSE,  # if FALSE considers all models
+             allowdrift = TRUE, # include a constant
+             trace = TRUE)      # show summary of all models considered
+
+#Return: Best model: ARIMA(3,1,4)
+arima314 <- Arima(Data$x1,  # variable	
+                  order = c(3, 1, 4),  # (p,d,q) parameters
+                  include.constant = TRUE)  # including a constant
+)
+coeftest(arima314)
+
+AIC(arima510,arima314)
+
+BIC(arima510,arima314)
+
+arima.best.BIC <- 
+  auto.arima(Data$x1,
+             d = 1,             # parameter d of ARIMA model
+             max.p = 6,         # Maximum value of p
+             max.q = 6,         # Maximum value of q
+             max.order = 12,    # maximum p+q
+             start.p = 1,       # Starting value of p in stepwise procedure
+             start.q = 1,       # Starting value of q in stepwise procedure
+             ic = "bic",        # Information criterion to be used in model selection.
+             stepwise = FALSE,  # if FALSE considers all models
+             allowdrift = TRUE, # include a constant
+             trace = TRUE)      # show summary of all models considered
+#Return: Best model: ARIMA(3,1,2)
+arima312 <- Arima(Data$x1,  # variable	
+                  order = c(3, 1, 2),  # (p,d,q) parameters
+                  include.constant = TRUE)  # including a constant
+)
+coeftest(arima312)
+
+AIC(arima510,arima314,arima312)
+
+BIC(arima510,arima314,arima312)
+
+#5. Applying Box-Jenkins procedure for Time Series X2:
+
+# Step 1: Model Parameters:  
+par(mfrow = c(2, 1)) 
+acf(Data$dx2,
+    lag.max = 36, # max lag for ACF
+    ylim = c(-0.1, 0.1),   # limits for the y axis - we give c(min, max)
+    lwd = 5,               
+    col = "dark green",
+    na.action = na.pass)   # do not stop if there are missing values in the data
+pacf(Data$dx2, 
+     lag.max = 36, 
+     lwd = 5, col = "dark green",
+     na.action = na.pass)
+
+par(mfrow = c(1, 1)) # restore the original single panel
+
+#The PACF shown is suggestive of an AR(5) model. 
+#So an initial candidate model is an ARIMA(5,1,0). 
+#We also have some variations of this model: ARIMA(5,1,1), ARIMA(4,1,0),ARIMA(3,1,0).
+
+#Step 2 - model estimation
+
+arima510_x2 <- Arima(Data$x2,  # variable	
+                  order = c(5, 1, 0)  # (p,d,q) parameters
+)	
+coeftest(arima510_x2)
+summary(arima510_x2)
+
+#The above model is not included constant. Let's include constant into the model: 
+arima510_2_x2 <- Arima(Data$x2,  # variable	
+                    order = c(5, 1, 0),  # (p,d,q) parameters
+                    include.constant = TRUE)  # including a constant
+)
+coeftest(arima510_2_x2)
+#Adding the constant did not change the result much, so we keep the model without constant
+
+#Step 3 - model diagnostics
+#Method 1:
+plot(resid(arima510_x2))
+
+# The Ljung-Box test (for a maximum of 10 lags):
+
+Box.test(resid(arima510_x2), type = "Ljung-Box", lag = 10)
+Box.test(resid(arima510_x2), type = "Ljung-Box", lag = 15)
+Box.test(resid(arima510_x2), type = "Ljung-Box", lag = 20)
+Box.test(resid(arima510_x2), type = "Ljung-Box", lag = 25)
+
+#-> Very large p-values: The residual is white-noise  
+
+#Plot graph for Ljung-Box test:
+bj_pvalues = c()
+
+for(i in c(1:100)){
+  bj = Box.test(resid(arima510_x2), type = "Ljung-Box", lag = i)
+  bj_pvalues = append(bj_pvalues,bj$p.value)
+}
+
+plot(bj_pvalues, type='l')
+
+abline(h=0.05, col='red', type='l')
+
+
+#Model ARIMA(5,1,1)
+
+arima511_x2 <- Arima(Data$x2,  # variable	
+                  order = c(5, 1, 1),  # (p,d,q) parameters
+                  include.constant = TRUE)  # including a constant
+
+coeftest(arima511_x2)
+
+#ARIMA(4,1,0)
+arima410_x2 <- Arima(Data$x2,  # variable	
+                  order = c(4, 1, 0),  # (p,d,q) parameters
+                  include.constant = TRUE)  # including a constant
+
+coeftest(arima410_x2)
+
+#ARIMA(3,1,0).
+arima310_x2 <- Arima(Data$x2,  # variable	
+                  order = c(3, 1, 0),  # (p,d,q) parameters
+                  include.constant = TRUE)  # including a constant
+
+coeftest(arima310_x2)
+
+#Step 4. Evaluate Model:
+
+AIC(arima510_x2,arima510_2_x2, arima511_x2, arima410_x2, arima310_x2)
+BIC(arima510_x2, arima510_2_x2, arima511_x2, arima410_x2, arima310_x2)
+
+#-> Suggestion model: arima510_x2 - ARIMA(5,1,0)
+
+
+#Cross check with Auto Correlation:
+
+arima.best.AIC <- 
+  auto.arima(Data$x2,
+             d = 1,             # parameter d of ARIMA model
+             max.p = 6,         # Maximum value of p
+             max.q = 6,         # Maximum value of q
+             max.order = 12,    # maximum p+q
+             start.p = 1,       # Starting value of p in stepwise procedure
+             start.q = 1,       # Starting value of q in stepwise procedure
+             ic = "aic",        # Information criterion to be used in model selection.
+             stepwise = FALSE,  # if FALSE considers all models
+             allowdrift = TRUE, # include a constant
+             trace = TRUE)      # show summary of all models considered
+
+#Return: Best model: ARIMA(3,1,3)
+arima313_x2 <- Arima(Data$x2,  # variable	
+                  order = c(3, 1, 3),  # (p,d,q) parameters
+                  include.constant = TRUE)  # including a constant
+
+AIC(arima510_x2,arima313_x2)
+
+BIC(arima510_x2,arima313_x2)
+
+arima.best.BIC <- 
+  auto.arima(Data$x2,
+             d = 1,             # parameter d of ARIMA model
+             max.p = 6,         # Maximum value of p
+             max.q = 6,         # Maximum value of q
+             max.order = 12,    # maximum p+q
+             start.p = 1,       # Starting value of p in stepwise procedure
+             start.q = 1,       # Starting value of q in stepwise procedure
+             ic = "bic",        # Information criterion to be used in model selection.
+             stepwise = FALSE,  # if FALSE considers all models
+             allowdrift = TRUE, # include a constant
+             trace = TRUE)      # show summary of all models considered
+
+#Return: Best model: ARIMA(3,1,2)
+arima312_x2 <- Arima(Data$x2,  # variable	
+                  order = c(3, 1, 2),  # (p,d,q) parameters
+                  include.constant = TRUE)  # including a constant
+AIC(arima510_x2,arima313_x2, arima312_x2)
+
+BIC(arima510_x2,arima313_x2,arima312_x2 )
