@@ -19,29 +19,27 @@ Data <- read.csv("TSA_2023_project_data_1.csv",header = TRUE, dec = ".")
 
 #2. Summary Data
 
-
-Data %>% glimpse()
 str(Data)
-glimpse(Data)
+
 
 #Notice that the first column is the Date column, which is under "Character" type
 #We need to transform it into "Date" type.
 
 Data$X <- as.Date(Data$X, 
-                  format = "%Y-%m-%d") 
-glimpse(Data)
+                  format = "%d-%m-%y") 
 
 #Until now the class is "Data.Frame" object
 class(Data) 
 
 #Create xts objects
-Data <- xts(Data[,-1], Data$X, order.by = Data$X)
+Data <- xts(Data[,-1], Data$X)
 
 #After creating xts objects, the class is "xts", "zoo"
 class(Data) 
 
 #Checking for missing data
 summary(Data)
+head(Data,6)
 #There is no missing data for the table.
 
 #3. Checking for Cointegration
@@ -87,6 +85,7 @@ plot(Data,
      yaxis.same = FALSE,
      type = "l")
 
+plot(Data$x1,type="l")
 plot(Data$x2,type="l")
 plot(Data$x3,type="l")
 plot(Data$x4,type="l")
@@ -168,9 +167,9 @@ testdf(variable = residuals(model.coint), max.augmentations = 3)
 #The result is that non-stationarity of residuals is STRONGLY REJECTED, 
 #so residuals are stationary, which means that x1 and x2 are cointegrated.
 
-#The cointegrating vector is [1, -29.890 , -0.713]
+#The cointegrating vector is [1, -29.853 , -0.713]
 
-#which defines the cointegrating relationship as: 1 * x1 - 29.890 - 0.713 * x2.
+#which defines the cointegrating relationship as: 1 * x1 - 29.853 - 0.713 * x2.
 
 # 4. Applying Box-Jenkins procedure for Time Series X1:
 
@@ -206,14 +205,13 @@ summary(arima510)
 arima510_2 <- Arima(Data$x1,  # variable	
                   order = c(5, 1, 0),  # (p,d,q) parameters
                   include.constant = TRUE)  # including a constant
-)
+
 coeftest(arima510_2)
 #Adding the constant did not change the result much, so we keep the model without constant
 
 #Step 3 - model diagnostics
 #Method 1:
 plot(resid(arima510))
-
 
 #Method 2:
 tibble(
@@ -261,7 +259,7 @@ for(i in c(1:100)){
 
 plot(bj_pvalues, type='l')
 
-abline(h=0.05, col='red', type='l')
+abline(h = 0.05, col='red')
 
 
 #Model ARIMA(5,1,1)
@@ -269,21 +267,21 @@ abline(h=0.05, col='red', type='l')
 arima511 <- Arima(Data$x1,  # variable	
                     order = c(5, 1, 1),  # (p,d,q) parameters
                     include.constant = TRUE)  # including a constant
-)
+
 coeftest(arima511)
 
 #ARIMA(4,1,0)
 arima410 <- Arima(Data$x1,  # variable	
                   order = c(4, 1, 0),  # (p,d,q) parameters
                   include.constant = TRUE)  # including a constant
-)
+
 coeftest(arima410)
 
 #ARIMA(3,1,0).
 arima310 <- Arima(Data$x1,  # variable	
                   order = c(3, 1, 0),  # (p,d,q) parameters
                   include.constant = TRUE)  # including a constant
-)
+
 coeftest(arima310)
 
 #Step 4. Evaluate Model:
@@ -308,16 +306,16 @@ arima.best.AIC <-
              allowdrift = TRUE, # include a constant
              trace = TRUE)      # show summary of all models considered
 
-#Return: Best model: ARIMA(3,1,4)
-arima314 <- Arima(Data$x1,  # variable	
-                  order = c(3, 1, 4),  # (p,d,q) parameters
+#Return: Best model: ARIMA(4,1,2)
+arima412 <- Arima(Data$x1,  # variable	
+                  order = c(4, 1, 2),  # (p,d,q) parameters
                   include.constant = TRUE)  # including a constant
-)
-coeftest(arima314)
 
-AIC(arima510,arima314)
+coeftest(arima412)
 
-BIC(arima510,arima314)
+AIC(arima510,arima412)
+
+BIC(arima510,arima412)
 
 arima.best.BIC <- 
   auto.arima(Data$x1,
@@ -335,12 +333,12 @@ arima.best.BIC <-
 arima312 <- Arima(Data$x1,  # variable	
                   order = c(3, 1, 2),  # (p,d,q) parameters
                   include.constant = TRUE)  # including a constant
-)
+
 coeftest(arima312)
 
-AIC(arima510,arima314,arima312)
+AIC(arima510,arima412,arima312)
 
-BIC(arima510,arima314,arima312)
+BIC(arima510,arima412,arima312)
 
 #5. Applying Box-Jenkins procedure for Time Series X2:
 
@@ -375,7 +373,7 @@ summary(arima510_x2)
 arima510_2_x2 <- Arima(Data$x2,  # variable	
                     order = c(5, 1, 0),  # (p,d,q) parameters
                     include.constant = TRUE)  # including a constant
-)
+
 coeftest(arima510_2_x2)
 #Adding the constant did not change the result much, so we keep the model without constant
 
@@ -402,7 +400,7 @@ for(i in c(1:100)){
 
 plot(bj_pvalues, type='l')
 
-abline(h=0.05, col='red', type='l')
+abline(h=0.05, col='red')
 
 
 #Model ARIMA(5,1,1)
@@ -476,6 +474,176 @@ arima.best.BIC <-
 arima312_x2 <- Arima(Data$x2,  # variable	
                   order = c(3, 1, 2),  # (p,d,q) parameters
                   include.constant = TRUE)  # including a constant
+
 AIC(arima510_x2,arima313_x2, arima312_x2)
 
 BIC(arima510_x2,arima313_x2,arima312_x2 )
+
+
+#FORECASTING
+#Import Data Forecast:
+
+out_of_sample <-read.csv("Out_of_sample.csv",header = TRUE, dec = ".")
+
+class(out_of_sample)
+
+#Change Date
+out_of_sample$X <- as.Date(out_of_sample$X, 
+                           format = "%d-%m-%y") 
+
+#Create xts objects
+out_of_sample <- xts(out_of_sample[,-1], out_of_sample$X)
+
+#Assign forecast X1 to object oos_x1
+oos_x1 <- out_of_sample$x1
+
+oos_x1
+
+#FORECAST X1
+tail(Data, 12)
+
+forecasts_x1 <- forecast(arima510, # model for prediction
+                      h = 30) # how many periods outside the sample
+
+forecasts_x1
+
+#Extract the forecast points
+forecasts_x1$mean
+class(forecasts_x1$mean)
+#It is a ts object, not xts!
+#However, the xts objects are more convenient and modern.
+#In terms of plotting the real data and forecast data to compare.
+
+forecasts_x1$lower
+forecasts_x1$upper
+
+#Create xts object: (We use the second column (95% confidence interval))
+forecasts_x1_data <- data.frame(f_mean = as.numeric(forecasts_x1$mean),
+                             f_lower = as.numeric(forecasts_x1$lower[, 2]),
+                             f_upper = as.numeric(forecasts_x1$upper[, 2]))
+
+head(forecasts_x1_data,30)
+
+
+#Adding real value X1 below the current Dataset:
+Data_x1 <- rbind(Data[, "x1"], oos_x1)
+tail(Data_x1, n = 40)
+
+
+#Turn Forecast with Index into Forecast with Date
+forecasts_x1_xts <- xts(forecasts_x1_data,
+                     order.by = index(oos_x1))
+forecasts_x1_xts
+
+#Merge it together with the original data
+Data_x1_combined <- merge(Data_x1, forecasts_x1_xts)
+head(Data_x1_combined)
+tail(Data_x1_combined,40)
+
+
+#Plot Chart
+
+plot(Data_x1_combined [, c("x1", "f_mean", "f_lower", "f_upper")], 
+     major.ticks = "years", 
+     grid.ticks.on = "years",
+     grid.ticks.lty = 3,
+     main = "30 day forecast of x1",
+     col = c("black", "blue", "red", "red"))
+
+
+plot(Data_x1_combined ["2020-11/", c("x1", "f_mean", "f_lower", "f_upper")], 
+     major.ticks = "years", 
+     grid.ticks.on = "years",
+     grid.ticks.lty = 3,
+     main = "30 day forecast of x1",
+     col = c("black", "blue", "red", "red"))
+
+#Extract Data for Evaluating the Forecast:
+Data_x1_Eva <- tail(Data_x1_combined, 30)  
+Data_x1_Eva
+
+Data_x1_Eva$mae   <-  abs(Data_x1_Eva$x1 - Data_x1_Eva$f_mean)
+Data_x1_Eva$mse   <-  (Data_x1_Eva$x1 - Data_x1_Eva$f_mean) ^ 2
+Data_x1_Eva$mape  <-  abs((Data_x1_Eva$x1 - Data_x1_Eva$f_mean)/Data_x1_Eva$x1)
+Data_x1_Eva$amape <-  abs((Data_x1_Eva$x1 - Data_x1_Eva$f_mean)/(Data_x1_Eva$x1 + Data_x1_Eva$f_mean))
+Data_x1_Eva
+
+colMeans(Data_x1_Eva[, c("mae", "mse", "mape", "amape")])
+apply(Data_x1_Eva[, c("mae", "mse", "mape", "amape")], 2, FUN = median)
+
+
+
+##########################################################################################
+#FORECAST X2
+
+
+
+#Assign forecast X2 to object oos_x2
+oos_x2 <- out_of_sample$x2
+
+oos_x2
+
+#FORECAST X2
+tail(Data, 12)
+
+forecasts_x2 <- forecast(arima510_x2, # model for prediction
+                         h = 30) # how many periods outside the sample
+
+forecasts_x2
+
+#Extract the forecast points
+forecasts_x2$mean
+class(forecasts_x2$mean)
+#It is a ts object, not xts!
+#However, the xts objects are more convenient and modern.
+#In terms of plotting the real data and forecast data to compare.
+
+forecasts_x2$lower
+forecasts_x2$upper
+
+#Create xts object: (We use the second column (95% confidence interval))
+forecasts_x2_data <- data.frame(f_mean = as.numeric(forecasts_x2$mean),
+                                f_lower = as.numeric(forecasts_x2$lower[, 2]),
+                                f_upper = as.numeric(forecasts_x2$upper[, 2]))
+
+head(forecasts_x2_data,30)
+
+
+#Adding real value X1 below the current Dataset:
+Data_x2 <- rbind(Data[, "x2"], oos_x2)
+tail(Data_x2, n = 40)
+
+
+#Turn Forecast with Index into Forecast with Date
+forecasts_x2_xts <- xts(forecasts_x2_data,
+                        order.by = index(oos_x2))
+forecasts_x2_xts
+
+#Merge it together with the original data
+Data_x2_combined <- merge(Data_x2, forecasts_x2_xts)
+head(Data_x2_combined)
+tail(Data_x2_combined,40)
+
+
+#Plot Chart
+
+plot(Data_x2_combined ["2020-11/", c("x2", "f_mean", "f_lower", "f_upper")], 
+     major.ticks = "years", 
+     grid.ticks.on = "years",
+     grid.ticks.lty = 3,
+     main = "30 day forecast of x2",
+     col = c("black", "blue", "red", "red"))
+
+#Extract Data for Evaluating the Forecast:
+Data_x2_Eva <- tail(Data_x2_combined, 30)  
+Data_x2_Eva
+
+Data_x2_Eva$mae   <-  abs(Data_x2_Eva$x2 - Data_x2_Eva$f_mean)
+Data_x2_Eva$mse   <-  (Data_x2_Eva$x2 - Data_x2_Eva$f_mean) ^ 2
+Data_x2_Eva$mape  <-  abs((Data_x2_Eva$x2 - Data_x2_Eva$f_mean)/Data_x2_Eva$x2)
+Data_x2_Eva$amape <-  abs((Data_x2_Eva$x2 - Data_x2_Eva$f_mean)/(Data_x2_Eva$x2 + Data_x2_Eva$f_mean))
+Data_x2_Eva
+
+colMeans(Data_x2_Eva[, c("mae", "mse", "mape", "amape")])
+apply(Data_x2_Eva[, c("mae", "mse", "mape", "amape")], 2, FUN = median)
+
