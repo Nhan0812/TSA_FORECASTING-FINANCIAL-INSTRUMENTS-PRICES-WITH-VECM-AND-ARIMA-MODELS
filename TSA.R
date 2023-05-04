@@ -718,11 +718,13 @@ Data.vec5.asVAR <- vec2var(johan.test.eigen, r = 1)
 Data.vec5.asVAR
 
 #Calculate and plot Impulse Response Functions:
-plot(irf(Data.vec5.asVAR, n.ahead = 36), ask = FALSE)
+plot(irf(Data.vec5.asVAR, n.ahead = 36))
+#the residuals need to be stable: first increases then decreases (stablity)
+
 
 #Perform variance decomposition:
-#ERROR HEREEEE!
-#plot(fevd(Data.vec5.asVAR, n.ahead = 36), ask = FALSE)
+plot(fevd(Data.vec5.asVAR, n.ahead = 36))
+
 
 #Check if model residuals are autocorrelated or not:
 #Residuals can be extracted only from the VAR reparametrized model.
@@ -731,11 +733,53 @@ head(residuals(Data.vec5.asVAR))
 serial.test(Data.vec5.asVAR)
 
 #p-value = 0.0831 > p-critical = 5%
-#The null about no-autocorrelation is Not Rejected 
-#-> There is auto-correlated.????
+#The null about no-autocorrelation is fail to Reject.
+#=> There is no auto-correlation in Residuals. 
 
 #Plot ACF and PACF for the model:
-#plot(serial.test(Data.vec5.asVAR))
+plot(serial.test(Data.vec5.asVAR))
+
+#Checking the Nomarlity for x1 and x2 by creating Histogram:
+
+Data.vec5.asVAR %>%
+  residuals() %>%
+  as_tibble() %>%
+  ggplot(aes(`resids of x1`)) +
+  geom_histogram(aes(y =..density..),
+                 colour = "black", 
+                 fill = "pink") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(residuals(Data.vec5.asVAR)[, 1]), 
+                            sd = sd(residuals(Data.vec5.asVAR)[, 1]))) +
+  theme_bw() + 
+  labs(
+    title = "Density of x1 residuals", 
+    y = "", x = "",
+    caption = "source: own calculations"
+  )
+
+Data.vec5.asVAR %>%
+  residuals() %>%
+  as_tibble() %>%
+  ggplot(aes(`resids of x2`)) +
+  geom_histogram(aes(y =..density..),
+                 colour = "black", 
+                 fill = "pink") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(residuals(Data.vec5.asVAR)[, 2]), 
+                            sd = sd(residuals(Data.vec5.asVAR)[, 2]))) +
+  theme_bw() + 
+  labs(
+    title = "Density of x2 residuals", 
+    y = "", x = "",
+    caption = "source: own calculations"
+  )
+#We can also check it formally by using the Jarque-Bera (JB) test.
+
+normality.test(Data.vec5.asVAR)
+
+#p-value > 0.05 => Fail to reject Ho about the normality
+#Conclusion: the residual has a normal distribution.
 
 #9. Forecasting based on the VECM
 
@@ -795,7 +839,7 @@ plot(Data.fore ["2020-11/", c("x2", "x2_fore", "x2_lower", "x2_upper")],
      col = c("black", "blue", "red", "red"))
 
 
-#9. Calculate forecast accuracy measures
+#10. Calculate forecast accuracy measures
 
 #Extract the out-of-sample data to evaluate:
 Data.fore2 <- Data.fore[,-30]

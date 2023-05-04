@@ -1044,15 +1044,65 @@ serial.test(Data.vec5.asVAR)
 ```
 
 p-value = 0.0831 > p-critical = 5%
-The null about no-autocorrelation is Not Rejected 
-#-> There is auto-correlated.????
+We fail to reject about the null hypothesis about  no-autocorrelation.
+
+#-> There is no auto-correlation.
 
 Plot ACF and PACF for the model: 
-#Error in MODEL output
+
 ```{r}
 plot(serial.test(Data.vec5.asVAR))
 ```
 
+Checking the Nomarlity for x1 and x2 by creating Histogram:
+```{r}
+Data.vec5.asVAR %>%
+  residuals() %>%
+  as_tibble() %>%
+  ggplot(aes(`resids of x1`)) +
+  geom_histogram(aes(y =..density..),
+                 colour = "black", 
+                 fill = "pink") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(residuals(Data.vec5.asVAR)[, 1]), 
+                            sd = sd(residuals(Data.vec5.asVAR)[, 1]))) +
+  theme_bw() + 
+  labs(
+    title = "Density of x1 residuals", 
+    y = "", x = "",
+    caption = "source: own calculations"
+  )
+```
+
+
+```{r}
+Data.vec5.asVAR %>%
+  residuals() %>%
+  as_tibble() %>%
+  ggplot(aes(`resids of x2`)) +
+  geom_histogram(aes(y =..density..),
+                 colour = "black", 
+                 fill = "pink") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(residuals(Data.vec5.asVAR)[, 2]), 
+                            sd = sd(residuals(Data.vec5.asVAR)[, 2]))) +
+  theme_bw() + 
+  labs(
+    title = "Density of x2 residuals", 
+    y = "", x = "",
+    caption = "source: own calculations"
+  )
+```
+
+We can also check it formally by using the 
+Jarque-Bera (JB) test.
+
+```{r}
+normality.test(Data.vec5.asVAR)
+```
+
+p-value > 0.05 => Fail to reject Ho about the normality
+Conclusion: the residual has a normal distribution.
 
 #9. Forecasting based on the VECM
 
@@ -1079,13 +1129,11 @@ VEC forecasts for x2
 Data.vec5.fore$fcst$x2
 ```
 
-
 #Lets store it as an xts object. The correct set of dates (index) can be extracted from the out_of_sample xts data object.
 
 ```{r}
 tail(index(out_of_sample), 30)
 ```
-
 
 ```{r}
 x1_forecast <- xts(Data.vec5.fore$fcst$x1[,-4], 
@@ -1099,7 +1147,6 @@ names(x1_forecast) <- c("x1_fore", "x1_lower", "x1_upper")
 ```
 
 Apply similarly for x2:
-
 ```{r}
 x2_forecast <- xts(Data.vec5.fore$fcst$x2[, -4],
                     # we exclude the last column with CI
@@ -1116,11 +1163,9 @@ Data.fore <- merge(out_of_sample[,1:2],
                  x2_forecast)
 ```
 
-
 ```{r}
 tail(Data.fore,40) 
 ```
-
 
 Plot chart for Forecast:
 
@@ -1133,7 +1178,6 @@ plot(Data.fore ["2020-11/", c("x1", "x1_fore", "x1_lower", "x1_upper")],
      col = c("black", "blue", "red", "red"))
 ```
 
-
 ```{r}
 plot(Data.fore ["2020-11/", c("x2", "x2_fore", "x2_lower", "x2_upper")], 
      major.ticks = "years", 
@@ -1143,9 +1187,7 @@ plot(Data.fore ["2020-11/", c("x2", "x2_fore", "x2_lower", "x2_upper")],
      col = c("black", "blue", "red", "red"))
 ```
 
-
-
-#9. Calculate forecast accuracy measures
+#10. Calculate forecast accuracy measures
 
 Extract the out-of-sample data to evaluate:
 ```{r}
