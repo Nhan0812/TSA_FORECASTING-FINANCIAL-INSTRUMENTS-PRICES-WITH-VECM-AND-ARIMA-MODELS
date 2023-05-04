@@ -9,6 +9,7 @@ library(dygraphs)
 library(vars)
 library(knitr)
 library(kableExtra)
+library(ggplot2)
 
 
 getwd()
@@ -650,3 +651,173 @@ Data_x2_Eva
 colMeans(Data_x2_Eva[, c("mae", "mse", "mape", "amape")])
 apply(Data_x2_Eva[, c("mae", "mse", "mape", "amape")], 2, FUN = median)
 
+#7. Johansen cointegration test
+
+#We will assume the K=5 lag structure:
+  
+johan.test.trace <- 
+ca.jo(Data[,1:2], # data 
+        ecdet = "const", # "none" for no intercept in cointegrating equation, 
+        # "const" for constant term in cointegrating equation and 
+        # "trend" for trend variable in cointegrating equation
+        type = "trace",  # type of the test: trace or eigen
+        K = 5           # lag order of the series (levels) in the VAR
+)
+
+
+summary(johan.test.trace) 
+
+cbind(summary(johan.test.trace)@teststat, summary(johan.test.trace)@cval)
+  
+#Test Statistic < Critical Value: CANNOT reject the null
+#Test Statistic > Critical Value: reject the null
+#First we start with r=0, (no cointegrating vector): t-test statistic > Critical value: we reject the null hypothesis about NO cointerating vector.
+#Next, we test the hypothesis of r=1: Test Statistic < Critical Value: we CANNOT reject the null about 1 cointegrating vector.
+#The model has ONLY 1 cointegrating vector.
+
+summary(johan.test.trace)@V
+
+#Weights W:
+  
+summary(johan.test.trace)@W
+
+##Check for another type of test: for Eigen:
+
+johan.test.eigen <- 
+  ca.jo(Data[,1:2], # data 
+        ecdet = "const", # "none" for no intercept in cointegrating equation, 
+        # "const" for constant term in cointegrating equation and 
+        # "trend" for trend variable in cointegrating equation
+        type = "eigen",  # type of the test: trace or eigen
+        K = 5           # lag order of the series (levels) in the VAR
+) 
+summary(johan.test.eigen) 
+
+#The conclusion stays the same: There is only one cointegrating vector.
+
+#8. The VECM model
+
+#Define the specification of the VECM model, with cointegrating vector from either trace or eigen test from Johansen test.
+
+Data.vec5 <- cajorls(johan.test.eigen, # defined specification
+                        r = 1) # number of cointegrating vectors
+
+summary(Data.vec5)
+
+#Summary results:
+summary(Data.vec5$rlm)
+
+
+#extract the cointegrating vector:
+Data.vec5$beta
+
+#Reparametrize the VEC model into VAR:
+Data.vec5.asVAR <- vec2var(johan.test.eigen, r = 1)
+
+#Check result:
+Data.vec5.asVAR
+
+#Calculate and plot Impulse Response Functions:
+plot(irf(Data.vec5.asVAR, n.ahead = 36), ask = FALSE)
+
+#Perform variance decomposition:
+#ERROR HEREEEE!
+#plot(fevd(Data.vec5.asVAR, n.ahead = 36), ask = FALSE)
+
+#Check if model residuals are autocorrelated or not:
+#Residuals can be extracted only from the VAR reparametrized model.
+
+head(residuals(Data.vec5.asVAR))
+serial.test(Data.vec5.asVAR)
+
+#p-value = 0.0831 > p-critical = 5%
+#The null about no-autocorrelation is Not Rejected 
+#-> There is auto-correlated.????
+
+#Plot ACF and PACF for the model:
+#plot(serial.test(Data.vec5.asVAR))
+
+#9. Forecasting based on the VECM
+
+Data.vec5.fore <- 
+  predict(
+    vec2var(
+      johan.test.eigen, 
+      r = 1),     # no of cointegrating vectors 
+    n.ahead = 30, # forecast horizon
+    ci = 0.95)    # confidence level for intervals
+
+summary(Data.vec5.fore)
+
+#VEC forecasts for x1
+Data.vec5.fore$fcst$x1
+
+#VEC forecasts for x2
+Data.vec5.fore$fcst$x2
+
+#Lets store it as an xts object. The correct set of dates (index) can be extracted from the out_of_sample xts data object.
+tail(index(out_of_sample), 30)
+
+x1_forecast <- xts(Data.vec5.fore$fcst$x1[,-4], 
+                    # we exclude the last column with CI
+                    tail(index(out_of_sample), 30))
+
+#Correction of the variable names:
+names(x1_forecast) <- c("x1_fore", "x1_lower", "x1_upper")
+
+#Apply similarly for x2:
+x2_forecast <- xts(Data.vec5.fore$fcst$x2[, -4],
+                    # we exclude the last column with CI
+                    tail(index(out_of_sample), 30))
+
+names(x2_forecast) <- c("x2_fore", "x2_lower", "x2_upper")
+
+#Merge forecast into orignial data:
+Data.fore <- merge(out_of_sample[,1:2], 
+                 x1_forecast,
+                 x2_forecast)
+
+tail(Data.fore,40) 
+
+plot(Data.fore ["2020-11/", c("x1", "x1_fore", "x1_lower", "x1_upper")], 
+     major.ticks = "years", 
+     grid.ticks.on = "years",
+     grid.ticks.lty = 3,
+     main = "30 day forecast of x1",
+     col = c("black", "blue", "red", "red"))
+
+
+plot(Data.fore ["2020-11/", c("x2", "x2_fore", "x2_lower", "x2_upper")], 
+     major.ticks = "years", 
+     grid.ticks.on = "years",
+     grid.ticks.lty = 3,
+     main = "30 day forecast of x2",
+     col = c("black", "blue", "red", "red"))
+
+
+#9. Calculate forecast accuracy measures
+
+#Extract the out-of-sample data to evaluate:
+Data.fore2 <- Data.fore[,-30]
+
+Data.fore2$mae.x1   <-  abs(Data.fore2$x1 - Data.fore2$x1_fore)
+Data.fore2$mse.x1   <-  (Data.fore2$x1 - Data.fore2$x1_fore)^2
+Data.fore2$mape.x1  <-  abs(Data.fore2$x1 - Data.fore2$x1_fore)/Data.fore2$x1
+Data.fore2$amape.x1 <-  abs(Data.fore2$x1 - Data.fore2$x1_fore)/(Data.fore2$x1 + Data.fore2$x1_fore)
+
+Data.fore2$mae.x2   <-  abs(Data.fore2$x2 - Data.fore2$x2_fore)
+Data.fore2$mse.x2   <-  (Data.fore2$x2 - Data.fore2$x2_fore)^2
+Data.fore2$mape.x2  <-  abs(Data.fore2$x2 - Data.fore2$x2_fore)/Data.fore2$x2
+Data.fore2$amape.x2 <-  abs(Data.fore2$x2 - Data.fore2$x2_fore)/(Data.fore2$x2 + Data.fore2$x2_fore)
+
+# and calculate its averages
+
+colMeans(Data.fore2[, c("mae.x1", 
+                      "mse.x1",
+                      "mape.x1",
+                      "amape.x1")], na.rm = TRUE)
+
+colMeans(Data.fore2[, c("mae.x2", 
+                      "mse.x2",
+                      "mape.x2",
+                      "amape.x2")], na.rm = TRUE)  
