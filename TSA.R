@@ -30,7 +30,7 @@ str(Data)
 #We need to transform it into "Date" type.
 
 Data$X <- as.Date(Data$X, 
-                  format = "%d-%m-%y") 
+                  format = "%d-%m-%y")
 
 #Until now the class is "Data.Frame" object
 class(Data) 
@@ -50,7 +50,6 @@ head(Data,6)
 #a/ Visualize the chart for all 10 time series.
 
 #Plot 10 Time Series together
-#First Method
 plot(Data,  
      main = "Line Chart for 10 Time Series",  
      major.ticks = "years", 
@@ -59,16 +58,9 @@ plot(Data,
      legend.loc = "bottomleft",
      type="l")
 
-#Second Method
-Data %>%
-  dygraph() %>%
-  dyRangeSelector(height = 40)
-
-
 #Plot 10 Time Series separately
-
 plot(Data,
-     main = "Line Chart for 10 Time Series",  
+     main = "Graph for 10 Time Series",
      major.ticks = "years", 
      grid.ticks.on = "years",
      legend.loc = "bottomleft",
@@ -76,47 +68,15 @@ plot(Data,
      yaxis.same = FALSE,
      type="l")
 
-plot(Data,
-     main = list("Line Chart for 10 Time Series", 
-                 cex = 1.5, 
-                 line = 2,
-                 col = "darkblue",
-                 font = 2),
-     major.ticks = "years", 
-     grid.ticks.on = "years",
-     legend.loc = "bottomleft",
-     multi.panel = TRUE,
-     yaxis.same = FALSE,
-     type = "l")
+#So our group decide to choose Time Series 1 and 2 for analysis.
 
-plot(Data$x1,type="l")
-plot(Data$x2,type="l")
-plot(Data$x3,type="l")
-plot(Data$x4,type="l")
-plot(Data$x5,type="l")
-plot(Data$x6,type="l")
-plot(Data$x7,type="l")
-plot(Data$x8,type="l")
-plot(Data$x9,type="l")
-plot(Data$x10,type="l")
-
-
-#Time series 1 & 2:
 #4. Create first difference
 Data$dx1 <- diff.xts(Data$x1)
-Data$dx2 <- diff.xts(Data$x1)
-Data$dx3 <- diff.xts(Data$x3)
-Data$dx4 <- diff.xts(Data$x4)
-Data$dx5 <- diff.xts(Data$x5)
-Data$dx6 <- diff.xts(Data$x6)
-Data$dx7 <- diff.xts(Data$x7)
-Data$dx8 <- diff.xts(Data$x8) 
-Data$dx9 <- diff.xts(Data$x9)
-Data$dx10 <- diff.xts(Data$x10) 
+Data$dx2 <- diff.xts(Data$x2)
 
 #Plot both variables on the graph:
 plot(Data[, 1:2],
-     col = c("red", "blue"),
+     col = c("black", "blue"),
      major.ticks = "years", 
      grid.ticks.on = "years",
      grid.ticks.lty = 2,
@@ -124,6 +84,7 @@ plot(Data[, 1:2],
      legend.loc = "topright")
 
 #2 Testing cointegration
+
 #We perform the tests of integration order.
 
 #Testing the order of the time series 1 and its difference:
@@ -131,28 +92,35 @@ plot(Data[, 1:2],
 testdf(variable = Data$x1,
        max.augmentations = 3)
 
-#Interprete result: The 
-#Beusch-Godfrey: Ho: There is no auto-correlation in Residuals
+#Interpret result: The p-bg is very small -> there are auto-correlation in residuals, even when we add the augmentations, we still cant get rid of auto-correlation.
+#Hence, we test for its 1st difference. 
 
 testdf(variable = Data$dx1, 
        max.augmentations = 3)
 
-#Since we can reject the null in the case of the first differences, 
-#we can conclude that the Time Series X1 is integrated of order 1.
+#The p-bg is greater than 5% -> there are no auto-correlations in residual
+#Next, we test the stationary of its 1st lag, by checking p-adf. 
+#p-adf is smaller than 5%. We can reject the null in the case of the first differences about non-stationary.
+#Its 1st lag is stationary.
+#We can conclude that the Time Series X1 is integrated of order 1.
 
 #Testing the order of the time series 2 and its difference:
 
 testdf(variable = Data$x2,
        max.augmentations = 3)
 
+#Interpret result: Similar to X1, the p-bg here is smaller than 5% -> there are auto-correlation in residuals, even when we add the augmentations, we still cant get rid of auto-correlation.
+#Hence, we test for its 1st difference. 
+
 testdf(variable = Data$dx2, 
        max.augmentations = 3)
 
-
-#Since we can reject the null in the case of the first differences, 
+#By adding 1 augmentation, there will be no auto correlation in Residuals.
+#p-adf is greater than 5%, we can reject the null hypothesis in the case the non-stationary of first differences. 
+#Its 1st lag is stationary.
 #we can conclude that the Time Series X2 is integrated of order 1.
 
-
+#Conclusion:
 #As a result, both variables has the same order 1: ∼I(1)
 #so in the next step we can check whether they are cointegrated or not.
 
@@ -163,8 +131,10 @@ model.coint <- lm(x1 ~ x2, data = Data)
 #Examine the model summary:
 summary(model.coint)
 
+#Both the intercept and Coefficient for x2 are statistically significant.
 #The model is significantly explained by x2.
-#We further  test the stationary of the residuals:
+
+#We further test the stationary of the residuals:
 testdf(variable = residuals(model.coint), max.augmentations = 3)
 
 #The ADF test with no augmentations can be used. 
@@ -192,9 +162,120 @@ pacf(Data$dx1,
 
 par(mfrow = c(1, 1)) # restore the original single panel
 
-#The PACF shown is suggestive of an AR(5) model. 
+#The PACF shown is suggestive of an AR(5) model or AR(7). 
 #So an initial candidate model is an ARIMA(5,1,0). 
 #We also have some variations of this model: ARIMA(5,1,1), ARIMA(4,1,0),ARIMA(3,1,0).
+
+ARIMA(7,1,0)
+arima710 <- Arima(Data$x1,  # variable	
+                  order = c(7, 1, 0),  # (p,d,q) parameters	
+                  include.constant = TRUE)	
+
+arima711 <- Arima(Data$x1,  # variable	
+                  order = c(7, 1, 1),  # (p,d,q) parameters	
+                  include.constant = TRUE)	
+
+arima712 <- Arima(Data$x1,  # variable	
+                  order = c(7, 1, 2),  # (p,d,q) parameters	
+                  include.constant = TRUE)	
+
+arima713 <- Arima(Data$x1,  # variable	
+                  order = c(7, 1, 3),  # (p,d,q) parameters	
+                  include.constant = TRUE)	
+
+arima714 <- Arima(Data$x1,  # variable	
+                  order = c(7, 1, 4),  # (p,d,q) parameters	
+                  include.constant = TRUE)	
+
+arima715 <- Arima(Data$x1,  # variable	
+                  order = c(7, 1, 5),  # (p,d,q) parameters	
+                  include.constant = TRUE)	
+
+arima716 <- Arima(Data$x1,  # variable	
+                  order = c(7, 1, 6),  # (p,d,q) parameters	
+                  include.constant = TRUE)	
+
+arima717 <- Arima(Data$x1,  # variable	
+                  order = c(7, 1, 7)  # (p,d,q) parameters	
+)	
+
+arima512 <- Arima(Data$x1,  # variable	
+                  order = c(5, 1, 2),  # (p,d,q) parameters	
+                  include.constant = TRUE)
+
+arima513 <- Arima(Data$x1,  # variable	
+                  order = c(5, 1, 3),  # (p,d,q) parameters	
+                  include.constant = TRUE)
+
+arima514 <- Arima(Data$x1,  # variable	
+                  order = c(5, 1, 4),  # (p,d,q) parameters	
+                  include.constant = TRUE)
+
+arima515 <- Arima(Data$x1,  # variable	
+                  order = c(5, 1, 5),  # (p,d,q) parameters	
+                  include.constant = TRUE)
+
+arima516 <- Arima(Data$x1,  # variable	
+                  order = c(5, 1, 6),  # (p,d,q) parameters	
+                  include.constant = TRUE)
+
+arima517 <- Arima(Data$x1,  # variable	
+                  order = c(5, 1, 7),  # (p,d,q) parameters	
+                  include.constant = TRUE)
+
+arima411 <- Arima(Data$x1,  # variable	
+                  order = c(4, 1, 1),  # (p,d,q) parameters	
+                  include.constant = TRUE)
+
+arima413 <- Arima(Data$x1,  # variable	
+                  order = c(4, 1, 3),  # (p,d,q) parameters	
+                  include.constant = TRUE)
+
+
+arima414 <- Arima(Data$x1,  # variable	
+                  order = c(4, 1, 4)  # (p,d,q) parameters	
+)
+
+arima415 <- Arima(Data$x1,  # variable	
+                  order = c(4, 1, 5),  # (p,d,q) parameters	
+                  include.constant = TRUE)
+
+arima416 <- Arima(Data$x1,  # variable	
+                  order = c(4, 1, 6),  # (p,d,q) parameters	
+                  include.constant = TRUE)
+
+arima417 <- Arima(Data$x1,  # variable	
+                  order = c(4, 1, 7),  # (p,d,q) parameters	
+                  include.constant = TRUE)
+
+arima311 <- Arima(Data$x1,  # variable	
+                  order = c(3, 1, 1),  # (p,d,q) parameters	
+                  include.constant = TRUE)
+
+arima312 <- Arima(Data$x1,  # variable	
+                  order = c(3, 1, 2),  # (p,d,q) parameters	
+                  include.constant = TRUE)
+
+arima313 <- Arima(Data$x1,  # variable	
+                  order = c(3, 1, 3),  # (p,d,q) parameters	
+                  include.constant = TRUE)
+
+arima314 <- Arima(Data$x1,  # variable	
+                  order = c(3, 1, 4),  # (p,d,q) parameters	
+                  include.constant = TRUE)
+
+arima315 <- Arima(Data$x1,  # variable	
+                  order = c(3, 1, 5),  # (p,d,q) parameters	
+                  include.constant = TRUE)
+
+arima316 <- Arima(Data$x1,  # variable	
+                  order = c(3, 1, 6),  # (p,d,q) parameters	
+                  include.constant = TRUE)
+
+
+arima317 <- Arima(Data$x1,  # variable	
+                  order = c(3, 1, 7),  # (p,d,q) parameters	
+                  include.constant = TRUE)
 
 
 #Step 2 - model estimation
@@ -215,43 +296,30 @@ coeftest(arima510_2)
 
 #Step 3 - model diagnostics
 #Method 1:
-plot(resid(arima510))
+plot(resid(arima510),col = "royalblue")
 
-#Method 2:
-tibble(
-  date = index(Data),
-  resid = arima510 %>% resid() %>% as.numeric()
-) %>%
-  ggplot(aes(date, resid)) +
-  geom_line(col = "royalblue3") +
-  theme_bw()
+plot(resid(arima313),col = "royalblue")
 
 #Lets check the ACF and the PACF of the Residual values:
-
-#Method 1:
-par(mfrow = c(2, 1)) 
-acf(resid(arima510), 
-    lag.max = 36,
-    ylim = c(-0.1, 0.1), 
-    lwd = 5, col = "dark green",
-    na.action = na.pass)
-pacf(resid(arima510), 
-     lag.max = 36, 
-     lwd = 5, col = "dark green",
-     na.action = na.pass)
-par(mfrow = c(1, 1))
-
-#Method 2:
 plot_ACF_PACF_resids(arima510)
+plot_ACF_PACF_resids(arima313)
 
-# The Ljung-Box test (for a maximum of 10 lags):
+#The Ljung-Box test:
 
 Box.test(resid(arima510), type = "Ljung-Box", lag = 10)
 Box.test(resid(arima510), type = "Ljung-Box", lag = 15)
 Box.test(resid(arima510), type = "Ljung-Box", lag = 20)
 Box.test(resid(arima510), type = "Ljung-Box", lag = 25)
 
-#-> Very large p-values: The residual is white-noise  
+
+Box.test(resid(arima313), type = "Ljung-Box", lag = 10)
+Box.test(resid(arima313), type = "Ljung-Box", lag = 15)
+Box.test(resid(arima313), type = "Ljung-Box", lag = 20)
+Box.test(resid(arima313), type = "Ljung-Box", lag = 25)
+
+#We have very large p-values, greater than 5% 
+#-> fail to reject Ho about no autocorrelation 
+#Hence, the residual is white-noise.
 
 #Plot graph for Ljung-Box test:
 bj_pvalues = c()
@@ -266,8 +334,20 @@ plot(bj_pvalues, type='l')
 abline(h = 0.05, col='red')
 
 
-#Model ARIMA(5,1,1)
 
+bj_pvalues = c()
+
+for(i in c(1:100)){
+  bj = Box.test(resid(arima313), type = "Ljung-Box", lag = i)
+  bj_pvalues = append(bj_pvalues,bj$p.value)
+}
+
+plot(bj_pvalues, type='l')
+
+abline(h = 0.05, col='red')
+
+
+#Model ARIMA(5,1,1)
 arima511 <- Arima(Data$x1,  # variable	
                     order = c(5, 1, 1),  # (p,d,q) parameters
                     include.constant = TRUE)  # including a constant
@@ -290,10 +370,19 @@ coeftest(arima310)
 
 #Step 4. Evaluate Model:
 
-AIC(arima510,arima510_2, arima511, arima410, arima310)
-BIC(arima510, arima510_2, arima511, arima410, arima310)
+AIC(arima510,arima510_2, arima511, arima512, arima513, arima514, arima515, arima516, arima517,
+    arima410, arima411, arima412, arima413, arima414, arima415, arima416, arima417,
+    arima310, arima311, arima312, arima313,arima314, arima315, arima316, arima317,
+    arima710, arima711, arima712, arima713, arima714, arima715, arima716, arima717)
+#Model ARIMA(3,1,3) returns the lowest AIC test.
 
-#-> Suggestion ARIMA(5,1,0)
+BIC(arima510,arima510_2, arima511, arima512, arima513, arima514, arima515, arima516, arima517,
+    arima410, arima411, arima412, arima413, arima414, arima415, arima416, arima417,
+    arima310, arima311, arima312, arima313,arima314, arima315, arima316, arima317,
+    arima710, arima711, arima712, arima713, arima714, arima715, arima716, arima717)
+#Model ARIMA(3,1,2) returns the lowest BIC test.
+
+#However, we shuold prefer AIC over BIC so our model suggestion shuold be ARIMA(3,1,3)
 
 #Cross check with Auto Correlation:
 
@@ -317,9 +406,9 @@ arima412 <- Arima(Data$x1,  # variable
 
 coeftest(arima412)
 
-AIC(arima510,arima412)
+AIC(arima313,arima412)
 
-BIC(arima510,arima412)
+BIC(arima313,arima412)
 
 arima.best.BIC <- 
   auto.arima(Data$x1,
@@ -340,9 +429,9 @@ arima312 <- Arima(Data$x1,  # variable
 
 coeftest(arima312)
 
-AIC(arima510,arima412,arima312)
+AIC(arima310,arima312)
 
-BIC(arima510,arima412,arima312)
+BIC(arima310,arima312)
 
 #5. Applying Box-Jenkins procedure for Time Series X2:
 
@@ -364,6 +453,7 @@ par(mfrow = c(1, 1)) # restore the original single panel
 #The PACF shown is suggestive of an AR(5) model. 
 #So an initial candidate model is an ARIMA(5,1,0). 
 #We also have some variations of this model: ARIMA(5,1,1), ARIMA(4,1,0),ARIMA(3,1,0).
+
 
 #Step 2 - model estimation
 
@@ -415,12 +505,49 @@ arima511_x2 <- Arima(Data$x2,  # variable
 
 coeftest(arima511_x2)
 
+
+arima512_x2 <- Arima(Data$x2,  # variable	
+                     order = c(5, 1, 2),  # (p,d,q) parameters
+                     include.constant = TRUE)  # including a constant
+
+arima513_x2 <- Arima(Data$x2,  # variable	
+                     order = c(5, 1, 3),  # (p,d,q) parameters
+                     include.constant = TRUE)  # including a constant
+
+arima514_x2 <- Arima(Data$x2,  # variable	
+                     order = c(5, 1, 4),  # (p,d,q) parameters
+                     include.constant = TRUE)  # including a constant
+
+arima515_x2 <- Arima(Data$x2,  # variable	
+                     order = c(5, 1, 5),  # (p,d,q) parameters
+                     include.constant = TRUE)  # including a constant
+
+
 #ARIMA(4,1,0)
 arima410_x2 <- Arima(Data$x2,  # variable	
                   order = c(4, 1, 0),  # (p,d,q) parameters
                   include.constant = TRUE)  # including a constant
-
 coeftest(arima410_x2)
+
+arima411_x2 <- Arima(Data$x2,  # variable	
+                     order = c(4, 1, 1),  # (p,d,q) parameters
+                     include.constant = TRUE)  # including a constant
+
+arima412_x2 <- Arima(Data$x2,  # variable	
+                     order = c(4, 1, 2),  # (p,d,q) parameters
+                     include.constant = TRUE)  # including a constant
+
+arima413_x2 <- Arima(Data$x2,  # variable	
+                     order = c(4, 1, 3),  # (p,d,q) parameters
+                     include.constant = TRUE)  # including a constant
+
+arima414_x2 <- Arima(Data$x2,  # variable	
+                     order = c(4, 1, 4),  # (p,d,q) parameters
+                     include.constant = TRUE)  # including a constant
+
+arima415_x2 <- Arima(Data$x2,  # variable	
+                     order = c(4, 1, 5),  # (p,d,q) parameters
+                     include.constant = TRUE)  # including a constant
 
 #ARIMA(3,1,0).
 arima310_x2 <- Arima(Data$x2,  # variable	
@@ -429,10 +556,30 @@ arima310_x2 <- Arima(Data$x2,  # variable
 
 coeftest(arima310_x2)
 
+arima311_x2 <- Arima(Data$x2,  # variable	
+                     order = c(3, 1, 1),  # (p,d,q) parameters
+                     include.constant = TRUE)  # including a constant
+
+arima314_x2 <- Arima(Data$x2,  # variable	
+                     order = c(3, 1, 4),  # (p,d,q) parameters
+                     include.constant = TRUE)  # including a constant
+
+
+arima315_x2 <- Arima(Data$x2,  # variable	
+                     order = c(3, 1, 5),  # (p,d,q) parameters
+                     include.constant = TRUE)  # including a constant
+
 #Step 4. Evaluate Model:
 
-AIC(arima510_x2,arima510_2_x2, arima511_x2, arima410_x2, arima310_x2)
-BIC(arima510_x2, arima510_2_x2, arima511_x2, arima410_x2, arima310_x2)
+AIC(arima510_x2,arima510_2_x2, arima511_x2, arima512_x2,arima513_x2, arima514_x2, arima515_x2,
+    arima410_x2, arima411_x2, arima412_x2, arima413_x2, arima414_x2, arima415_x2,  
+    arima310_x2, arima311_x2, arima312_x2, arima313_x2, arima314_x2, arima315_x2)
+#ARIMA(5,1,0)
+
+BIC(arima510_x2,arima510_2_x2, arima511_x2, arima512_x2,arima513_x2, arima514_x2, arima515_x2,
+    arima410_x2, arima411_x2, arima412_x2, arima413_x2, arima414_x2, arima415_x2,  
+    arima310_x2, arima311_x2, arima312_x2, arima313_x2, arima314_x2, arima315_x2)
+#ARIMA(5,1,0)
 
 #-> Suggestion model: arima510_x2 - ARIMA(5,1,0)
 
@@ -506,7 +653,7 @@ oos_x1
 #FORECAST X1
 tail(Data, 12)
 
-forecasts_x1 <- forecast(arima510, # model for prediction
+forecasts_x1 <- forecast(arima313, # model for prediction
                       h = 30) # how many periods outside the sample
 
 forecasts_x1
@@ -572,15 +719,11 @@ Data_x1_Eva$mape  <-  abs((Data_x1_Eva$x1 - Data_x1_Eva$f_mean)/Data_x1_Eva$x1)
 Data_x1_Eva$amape <-  abs((Data_x1_Eva$x1 - Data_x1_Eva$f_mean)/(Data_x1_Eva$x1 + Data_x1_Eva$f_mean))
 Data_x1_Eva
 
-colMeans(Data_x1_Eva[, c("mae", "mse", "mape", "amape")])
+ARIMA_x1 <- colMeans(Data_x1_Eva[, c("mae", "mse", "mape", "amape")])
 apply(Data_x1_Eva[, c("mae", "mse", "mape", "amape")], 2, FUN = median)
-
-
 
 ##########################################################################################
 #FORECAST X2
-
-
 
 #Assign forecast X2 to object oos_x2
 oos_x2 <- out_of_sample$x2
@@ -628,7 +771,6 @@ Data_x2_combined <- merge(Data_x2, forecasts_x2_xts)
 head(Data_x2_combined)
 tail(Data_x2_combined,40)
 
-
 #Plot Chart
 
 plot(Data_x2_combined ["2020-11/", c("x2", "f_mean", "f_lower", "f_upper")], 
@@ -648,7 +790,7 @@ Data_x2_Eva$mape  <-  abs((Data_x2_Eva$x2 - Data_x2_Eva$f_mean)/Data_x2_Eva$x2)
 Data_x2_Eva$amape <-  abs((Data_x2_Eva$x2 - Data_x2_Eva$f_mean)/(Data_x2_Eva$x2 + Data_x2_Eva$f_mean))
 Data_x2_Eva
 
-colMeans(Data_x2_Eva[, c("mae", "mse", "mape", "amape")])
+ARIMA_x2 <- colMeans(Data_x2_Eva[, c("mae", "mse", "mape", "amape")])
 apply(Data_x2_Eva[, c("mae", "mse", "mape", "amape")], 2, FUN = median)
 
 #7. Johansen cointegration test
@@ -663,7 +805,6 @@ ca.jo(Data[,1:2], # data
         type = "trace",  # type of the test: trace or eigen
         K = 5           # lag order of the series (levels) in the VAR
 )
-
 
 summary(johan.test.trace) 
 
@@ -706,7 +847,6 @@ summary(Data.vec5)
 
 #Summary results:
 summary(Data.vec5$rlm)
-
 
 #extract the cointegrating vector:
 Data.vec5$beta
@@ -856,12 +996,25 @@ Data.fore2$amape.x2 <-  abs(Data.fore2$x2 - Data.fore2$x2_fore)/(Data.fore2$x2 +
 
 # and calculate its averages
 
-colMeans(Data.fore2[, c("mae.x1", 
+VECM_x1 <- colMeans(Data.fore2[, c("mae.x1", 
                       "mse.x1",
                       "mape.x1",
                       "amape.x1")], na.rm = TRUE)
 
-colMeans(Data.fore2[, c("mae.x2", 
+VECM_x2 <- colMeans(Data.fore2[, c("mae.x2", 
                       "mse.x2",
                       "mape.x2",
                       "amape.x2")], na.rm = TRUE)  
+
+#6. Comparing VECM model’s forecasts with ARIMAs:
+
+result <- rbind(ARIMA_x1,VECM_x1, ARIMA_x2,VECM_x2)
+
+result %>%
+  knitr::kable(digits = 4) %>%
+  kableExtra::kable_styling(full_width = F,
+                            bootstrap_options = c("striped", 
+                                                  "hover", 
+                                                  "condensed"))
+
+#Conclusion: The forecasts from ARIMA model outperforms that of VECM.

@@ -25,7 +25,7 @@ knitr::opts_chunk$set(echo = TRUE,
 getwd()
 ```
 
-## 1. Data Preparation
+# 1. Data Preparation
 
 Load necessary packages to memory:
 
@@ -57,7 +57,7 @@ Load Dataset:
 Data <- read.csv("TSA_2023_project_data_1.csv",header = TRUE, dec = ".")
 ```
 
-## 2 Summary Data
+# 2. Summary Data
 
 ```{r}
 str(Data)
@@ -109,14 +109,15 @@ head(Data,6)
 
 There is no missing data for the table.
 
-##3. Checking for Cointegration ###a/ Visualize the chart for all 10
-time series.
+# 3. Checking for Cointegration
 
-Plot 10 Time Series together First Method
+## Visualization
+
+Plot 10 Time Series together
 
 ```{r}
 plot(Data,  
-     main = "Line Chart for 10 Time Series",  
+     main = "Graph for 10 Time Series",  
      major.ticks = "years", 
      grid.ticks.on = "years",
      grid.ticks.lty = 3,
@@ -124,19 +125,11 @@ plot(Data,
      type="l")
 ```
 
-Second Method
-
-```{r}
-Data %>%
-  dygraph() %>%
-  dyRangeSelector(height = 40)
-```
-
 Plot 10 Time Series separately
 
 ```{r}
 plot(Data,
-     main = "Line Chart for 10 Time Series",  
+     main = "Graph for 10 Time Series",  
      major.ticks = "years", 
      grid.ticks.on = "years",
      legend.loc = "bottomleft",
@@ -145,57 +138,20 @@ plot(Data,
      type="l")
 ```
 
-```{r}
-plot(Data,
-     main = list("Line Chart for 10 Time Series", 
-                 cex = 1.5, 
-                 line = 2,
-                 col = "darkblue",
-                 font = 2),
-     major.ticks = "years", 
-     grid.ticks.on = "years",
-     legend.loc = "bottomleft",
-     multi.panel = TRUE,
-     yaxis.same = FALSE,
-     type = "l")
-```
-
-```{r}
-plot(Data$x1,type="l")
-plot(Data$x2,type="l")
-plot(Data$x2,type="l")
-plot(Data$x3,type="l")
-plot(Data$x4,type="l")
-plot(Data$x5,type="l")
-plot(Data$x6,type="l")
-plot(Data$x7,type="l")
-plot(Data$x8,type="l")
-plot(Data$x9,type="l")
-plot(Data$x10,type="l")
-```
-
 So our group decide to choose Time Series 1 and 2 for analysis.
 
-###b. Create first difference
+## Create first difference
 
 ```{r}
 Data$dx1 <- diff.xts(Data$x1)
-Data$dx2 <- diff.xts(Data$x1)
-Data$dx3 <- diff.xts(Data$x3)
-Data$dx4 <- diff.xts(Data$x4)
-Data$dx5 <- diff.xts(Data$x5)
-Data$dx6 <- diff.xts(Data$x6)
-Data$dx7 <- diff.xts(Data$x7)
-Data$dx8 <- diff.xts(Data$x8) 
-Data$dx9 <- diff.xts(Data$x9)
-Data$dx10 <- diff.xts(Data$x10) 
+Data$dx2 <- diff.xts(Data$x2)
 ```
 
 Plot both variables on the graph:
 
 ```{r}
 plot(Data[, 1:2],
-     col = c("red", "blue"),
+     col = c("black", "blue"),
      major.ticks = "years", 
      grid.ticks.on = "years",
      grid.ticks.lty = 2,
@@ -203,7 +159,9 @@ plot(Data[, 1:2],
      legend.loc = "topright")
 ```
 
-###c Testing cointegration We perform the tests of integration order.
+## Test cointegration
+
+We perform the tests of integration order.
 
 Testing the order of the time series 1 and its difference:
 
@@ -212,38 +170,48 @@ testdf(variable = Data$x1,
        max.augmentations = 3)
 ```
 
-Interprete result: The Beusch-Godfrey: Ho: There is no auto-correlation
-in Residuals
+Interpret result: The p-bg is very small -\> there are auto-correlation
+in residuals, even when we add the augmentations, we still cant get rid
+of auto-correlation. Hence, we test for its 1st difference.
 
 ```{r}
 testdf(variable = Data$dx1, 
        max.augmentations = 3)
 ```
 
-Since we can reject the null in the case of the first differences, we
+The p-bg is greater than 5% -\> there are no auto-correlations in
+residual Next, we test the stationary of its 1st lag, by checking p-adf.
+p-adf is smaller than 5%. We can reject the null in the case of the
+first differences about non-stationary. Its 1st lag is stationary. We
 can conclude that the Time Series X1 is integrated of order 1.
 
 Testing the order of the time series 2 and its difference:
 
 ```{r}
-
 testdf(variable = Data$x2,
        max.augmentations = 3)
 ```
 
-```{r}
+Interpret result: Similar to X1, the p-bg here is smaller than 5% -\>
+there are auto-correlation in residuals, even when we add the
+augmentations, we still cant get rid of auto-correlation. Hence, we test
+for its 1st difference.
 
+```{r}
 testdf(variable = Data$dx2, 
        max.augmentations = 3)
 ```
 
-Since we can reject the null in the case of the first differences, we
-can conclude that the Time Series X2 is integrated of order 1.
+By adding 1 augmentation, there will be no auto correlation in
+Residuals. p-adf is greater than 5%, we can reject the null hypothesis
+in the case the non-stationary of first differences. Its 1st lag is
+stationary. we can conclude that the Time Series X2 is integrated of
+order 1.
 
-As a result, both variables has the same order 1: ∼I(1) so in the next
-step we can check whether they are cointegrated or not.
+**Conclusion:** As a result, both variables has the same order 1: ∼I(1)
+so in the next step we can check whether they are cointegrated or not.
 
-###d. Estimating the Cointegrated Vector:
+## Estimate Cointegrated Vector
 
 ```{r}
 model.coint <- lm(x1 ~ x2, data = Data)
@@ -254,6 +222,8 @@ Examine the model summary:
 ```{r}
 summary(model.coint)
 ```
+
+Both the intercept and Coefficient for x2 are statistically significant.
 
 The model is significantly explained by x2. We further test the
 stationary of the residuals:
@@ -271,9 +241,11 @@ The cointegrating vector is [1, -29.853 , -0.713]
 which defines the cointegrating relationship as: 1 \* x1 - 29.853 -
 0.713 \* x2.
 
-##4. Applying Box-Jenkins procedure for Time Series X1:
+# 4. Applying Box-Jenkins Procedure
 
-### Step 1: Model Parameters:
+## 4.1 Applying for Time Series X1
+
+### Step 1: Model Parameters
 
 ```{r}
 par(mfrow = c(2, 1)) 
@@ -293,13 +265,19 @@ par(mfrow = c(1, 1)) # restore the original single panel
 
 The PACF shown is suggestive of an AR(5) model. So an initial candidate
 model is an ARIMA(5,1,0). We also have some variations of this model:
-ARIMA(5,1,1), ARIMA(4,1,0),ARIMA(3,1,0).
+ARIMA(5,1,1), ARIMA(4,1,0),ARIMA(3,1,0), ARIMA(3,1,3).
 
-###Step 2 - model estimation
+### Step 2: Model Estimation
 
 ```{r}
 arima510 <- Arima(Data$x1,  # variable	
                   order = c(5, 1, 0)  # (p,d,q) parameters	
+)
+```
+
+```{r}
+arima313 <- Arima(Data$x1,  # variable	
+                  order = c(3, 1, 3)  # (p,d,q) parameters	
 )
 ```
 
@@ -324,50 +302,23 @@ coeftest(arima510_2)
 Adding the constant did not change the result much, so we keep the model
 without constant
 
-###Step 3 - model diagnostics Method 1:
+### Step 3: Model Diagnostics
 
 ```{r}
 plot(resid(arima510))
 ```
 
-Method 2:
-
 ```{r}
-tibble(
-  date = index(Data),
-  resid = arima510 %>% resid() %>% as.numeric()
-) %>%
-  ggplot(aes(date, resid)) +
-  geom_line(col = "royalblue3") +
-  theme_bw()
+plot(resid(arima313), col = "royalblue3")
 ```
 
 Lets check the ACF and the PACF of the Residual values:
-
-Method 1:
-
-```{r}
-par(mfrow = c(2, 1)) 
-acf(resid(arima510), 
-    lag.max = 36,
-    ylim = c(-0.1, 0.1), 
-    lwd = 5, col = "dark green",
-    na.action = na.pass)
-pacf(resid(arima510), 
-     lag.max = 36, 
-     lwd = 5, col = "dark green",
-     na.action = na.pass)
-par(mfrow = c(1, 1))
-
-```
-
-Method 2:
 
 ```{r}
 plot_ACF_PACF_resids(arima510)
 ```
 
-# The Ljung-Box test (for a maximum of 10 lags):
+The Ljung-Box test:
 
 ```{r}
 Box.test(resid(arima510), type = "Ljung-Box", lag = 10)
@@ -376,15 +327,24 @@ Box.test(resid(arima510), type = "Ljung-Box", lag = 20)
 Box.test(resid(arima510), type = "Ljung-Box", lag = 25)
 ```
 
+```{r}
+Box.test(resid(arima313), type = "Ljung-Box", lag = 10)
+Box.test(resid(arima313), type = "Ljung-Box", lag = 15)
+Box.test(resid(arima313), type = "Ljung-Box", lag = 20)
+Box.test(resid(arima313), type = "Ljung-Box", lag = 25)
+```
+
 -\> Very large p-values: The residual is white-noise
 
 Plot graph for Ljung-Box test:
 
+```{r}
 bj_pvalues = c()
+```
 
 ```{r}
 for(i in c(1:100)){
-  bj = Box.test(resid(arima510), type = "Ljung-Box", lag = i)
+  bj = Box.test(resid(arima313), type = "Ljung-Box", lag = i)
   bj_pvalues = append(bj_pvalues,bj$p.value)
 }
 
@@ -431,16 +391,16 @@ arima310 <- Arima(Data$x1,  # variable
 coeftest(arima310)
 ```
 
-###Step 4. Evaluate Model:
+###Step 4. Evaluate Model
 
 ```{r}
-AIC(arima510,arima510_2, arima511, arima410, arima310)
-BIC(arima510, arima510_2, arima511, arima410, arima310)
+AIC(arima510,arima510_2, arima511, arima410, arima310, arima313)
+BIC(arima510, arima510_2, arima511, arima410, arima310, arima313)
 ```
 
--\> Suggestion ARIMA(5,1,0)
+-\> Suggestion ARIMA(3,1,3)
 
-#Cross check with Auto Correlation:
+Cross check with Auto Correlation:
 
 ```{r}
 
@@ -471,8 +431,8 @@ coeftest(arima412)
 ```
 
 ```{r}
-AIC(arima510,arima412)
-BIC(arima510,arima412)
+AIC(arima313,arima412)
+BIC(arima313,arima412)
 ```
 
 Check for BIC best:
@@ -506,15 +466,15 @@ coeftest(arima312)
 ```
 
 ```{r}
-AIC(arima510,arima412,arima312)
-BIC(arima510,arima412,arima312)
+AIC(arima313,arima412,arima312)
+BIC(arima313,arima412,arima312)
 ```
 
-NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
+***Conclusion:*** ARIMA(3,1,3) for forcasting Time Series X1.
 
-#5. Applying Box-Jenkins procedure for Time Series X2:
+## 4.1 Applying for Time Series X2
 
-## Step 1: Model Parameters:
+### Step 1: Model Parameters
 
 ```{r}
 par(mfrow = c(2, 1)) 
@@ -537,7 +497,7 @@ The PACF shown is suggestive of an AR(5) model. So an initial candidate
 model is an ARIMA(5,1,0). We also have some variations of this model:
 ARIMA(5,1,1), ARIMA(4,1,0),ARIMA(3,1,0).
 
-##Step 2 - model estimation
+### Step 2: Model Estimation
 
 ```{r}
 arima510_x2 <- Arima(Data$x2,  # variable	
@@ -561,13 +521,13 @@ coeftest(arima510_2_x2)
 Adding the constant did not change the result much, so we keep the model
 without constant
 
-##Step 3 - model diagnostics Method 1:
+### Step 3: Model Diagnostics
 
 ```{r}
 plot(resid(arima510_x2))
 ```
 
-The Ljung-Box test (for a maximum of 10 lags):
+The Ljung-Box test:
 
 ```{r}
 Box.test(resid(arima510_x2), type = "Ljung-Box", lag = 10)
@@ -628,7 +588,7 @@ arima310_x2 <- Arima(Data$x2,  # variable
 coeftest(arima310_x2)
 ```
 
-##Step 4. Evaluate Model:
+### Step 4. Evaluate Model
 
 ```{r}
 AIC(arima510_x2,arima510_2_x2, arima511_x2, arima410_x2, arima310_x2)
@@ -697,7 +657,7 @@ AIC(arima510_x2,arima313_x2, arima312_x2)
 BIC(arima510_x2,arima313_x2,arima312_x2 )
 ```
 
-##6. FORECASTING
+## 4.3 ARIMA Forecast for X1 & X2
 
 Import Data Forecast:
 
@@ -730,20 +690,20 @@ oos_x1
 
 ```
 
-#FORECAST X1
+### Forecast for X1
 
 ```{r}
 tail(Data, 12)
 ```
 
 ```{r}
-forecasts_x1 <- forecast(arima510, # model for prediction
+forecasts_x1 <- forecast(arima313, # model for prediction
                       h = 30) # how many periods outside the sample
 
 forecasts_x1
 ```
 
-#Extract the forecast points
+Extract the forecast points
 
 ```{r}
 forecasts_x1$mean
@@ -831,13 +791,11 @@ Data_x1_Eva
 ```
 
 ```{r}
-colMeans(Data_x1_Eva[, c("mae", "mse", "mape", "amape")])
+ARIMA_x1 <- colMeans(Data_x1_Eva[, c("mae", "mse", "mape", "amape")])
 apply(Data_x1_Eva[, c("mae", "mse", "mape", "amape")], 2, FUN = median)
 ```
 
-########################################################################################## 
-
-#FORECAST X2
+### Forecast for X2
 
 Assign forecast X2 to object oos_x2
 
@@ -934,15 +892,16 @@ Data_x2_Eva
 ```
 
 ```{r}
-colMeans(Data_x2_Eva[, c("mae", "mse", "mape", "amape")])
+ARIMA_x2 <- colMeans(Data_x2_Eva[, c("mae", "mse", "mape", "amape")])
 apply(Data_x2_Eva[, c("mae", "mse", "mape", "amape")], 2, FUN = median)
 ```
 
-###############################################
+# 5. VECM Model and Analysis
 
-#7. Johansen cointegration test
+## 5.1. Johansen Cointegration Test
 
 We will assume the K=5 lag structure:
+
 ```{r}
 johan.test.trace <- 
 ca.jo(Data[,1:2], # data 
@@ -959,25 +918,26 @@ cbind(summary(johan.test.trace)@teststat,
 
 summary(johan.test.trace)@cval)
 ```
-  
 
-Test Statistic < Critical Value: CANNOT reject the null
-Test Statistic > Critical Value: reject the null
-First we start with r=0, (no cointegrating vector): t-test statistic > Critical value: we reject the null hypothesis about NO cointerating vector.
-Next, we test the hypothesis of r=1: Test Statistic < Critical Value: we CANNOT reject the null about 1 cointegrating vector.
-The model has ONLY 1 cointegrating vector.
+Test Statistic \< Critical Value: CANNOT reject the null Test Statistic
+\> Critical Value: reject the null First we start with r=0, (no
+cointegrating vector): t-test statistic \> Critical value: we reject the
+null hypothesis about NO cointerating vector. Next, we test the
+hypothesis of r=1: Test Statistic \< Critical Value: we CANNOT reject
+the null about 1 cointegrating vector. The model has ONLY 1
+cointegrating vector.
 
 ```{r}
 summary(johan.test.trace)@V
 ```
 
-
 Weights W:
+
 ```{r}
 summary(johan.test.trace)@W
 ```
-  
-###Check for another type of test: for Eigen:
+
+Check for another type of test: for Eigen:
 
 ```{r}
 johan.test.eigen <- 
@@ -993,9 +953,11 @@ summary(johan.test.eigen)
 
 The conclusion stays the same: There is only one cointegrating vector.
 
-#8. The VECM model
+## 5.2. VECM Model
 
-Define the specification of the VECM model, with cointegrating vector from either trace or eigen test from Johansen test.
+Define the specification of the VECM model, with cointegrating vector
+from either trace or eigen test from Johansen test.
+
 ```{r}
 Data.vec5 <- cajorls(johan.test.eigen, # defined specification
                         r = 1) # number of cointegrating vectors
@@ -1004,57 +966,64 @@ summary(Data.vec5)
 ```
 
 Summary results:
+
 ```{r}
 summary(Data.vec5$rlm)
 ```
 
 extract the cointegrating vector:
+
 ```{r}
 Data.vec5$beta
 ```
 
-Reparametrize the VEC model into VAR:
+Conclusion about whether Error Correction Mechanism work:
+
+Reparametrizing the VEC model into VAR:
+
 ```{r}
 Data.vec5.asVAR <- vec2var(johan.test.eigen, r = 1)
 ```
 
 Check result:
+
 ```{r}
 Data.vec5.asVAR
 ```
 
 Calculate and plot Impulse Response Functions:
+
 ```{r}
 plot(irf(Data.vec5.asVAR, n.ahead = 36), ask = FALSE)
 ```
 
 Perform variance decomposition:
-#ERROR HEREEEE!
 
 ```{r}
 plot(fevd(Data.vec5.asVAR, n.ahead = 36), ask = FALSE)
 ```
 
-Check if model residuals are autocorrelated or not:
-Residuals can be extracted only from the VAR reparametrized model.
+Check if model residuals are autocorrelated or not: Residuals can be
+extracted only from the VAR reparametrized model.
 
 ```{r}
 head(residuals(Data.vec5.asVAR))
 serial.test(Data.vec5.asVAR)
 ```
 
-p-value = 0.0831 > p-critical = 5%
-We fail to reject about the null hypothesis about  no-autocorrelation.
+p-value = 0.0831 \> p-critical = 5% We fail to reject about the null
+hypothesis about no-autocorrelation.
 
-#-> There is no auto-correlation.
+-\> There is no auto-correlation.
 
-Plot ACF and PACF for the model: 
+Plot ACF and PACF for the model:
 
 ```{r}
 plot(serial.test(Data.vec5.asVAR))
 ```
 
 Checking the Nomarlity for x1 and x2 by creating Histogram:
+
 ```{r}
 Data.vec5.asVAR %>%
   residuals() %>%
@@ -1073,7 +1042,6 @@ Data.vec5.asVAR %>%
     caption = "source: own calculations"
   )
 ```
-
 
 ```{r}
 Data.vec5.asVAR %>%
@@ -1094,17 +1062,16 @@ Data.vec5.asVAR %>%
   )
 ```
 
-We can also check it formally by using the 
-Jarque-Bera (JB) test.
+We can also check it formally by using the Jarque-Bera (JB) test.
 
 ```{r}
 normality.test(Data.vec5.asVAR)
 ```
 
-p-value > 0.05 => Fail to reject Ho about the normality
-Conclusion: the residual has a normal distribution.
+p-value \> 0.05 =\> Fail to reject Ho about the normality Conclusion:
+the residual has a normal distribution.
 
-#9. Forecasting based on the VECM
+## 5.3 VECM Forecasting
 
 ```{r}
 Data.vec5.fore <- 
@@ -1118,18 +1085,20 @@ Data.vec5.fore <-
 summary(Data.vec5.fore)
 ```
 
-
 VEC forecasts for x1
+
 ```{r}
 Data.vec5.fore$fcst$x1
 ```
 
 VEC forecasts for x2
+
 ```{r}
 Data.vec5.fore$fcst$x2
 ```
 
-#Lets store it as an xts object. The correct set of dates (index) can be extracted from the out_of_sample xts data object.
+Lets store it as an xts object. The correct set of dates (index) can be
+extracted from the out_of_sample xts data object.
 
 ```{r}
 tail(index(out_of_sample), 30)
@@ -1142,11 +1111,13 @@ x1_forecast <- xts(Data.vec5.fore$fcst$x1[,-4],
 ```
 
 Correction of the variable names:
+
 ```{r}
 names(x1_forecast) <- c("x1_fore", "x1_lower", "x1_upper")
 ```
 
 Apply similarly for x2:
+
 ```{r}
 x2_forecast <- xts(Data.vec5.fore$fcst$x2[, -4],
                     # we exclude the last column with CI
@@ -1157,6 +1128,7 @@ names(x2_forecast) <- c("x2_fore", "x2_lower", "x2_upper")
 ```
 
 Merge forecast into orignial data:
+
 ```{r}
 Data.fore <- merge(out_of_sample[,1:2], 
                  x1_forecast,
@@ -1187,9 +1159,10 @@ plot(Data.fore ["2020-11/", c("x2", "x2_fore", "x2_lower", "x2_upper")],
      col = c("black", "blue", "red", "red"))
 ```
 
-#10. Calculate forecast accuracy measures
+## 5.4. Evaluate Forecast Accuracy
 
 Extract the out-of-sample data to evaluate:
+
 ```{r}
 Data.fore2 <- Data.fore[,-30]
 ```
@@ -1209,16 +1182,35 @@ Data.fore2$amape.x2 <-  abs(Data.fore2$x2 - Data.fore2$x2_fore)/(Data.fore2$x2 +
 ```
 
 and calculate its averages
+
 ```{r}
-colMeans(Data.fore2[, c("mae.x1", 
+VECM_x1 <- colMeans(Data.fore2[, c("mae.x1", 
                       "mse.x1",
                       "mape.x1",
                       "amape.x1")], na.rm = TRUE)
 ```
 
 ```{r}
-colMeans(Data.fore2[, c("mae.x2", 
+VECM_x2 <- colMeans(Data.fore2[, c("mae.x2", 
                       "mse.x2",
                       "mape.x2",
                       "amape.x2")], na.rm = TRUE)  
 ```
+
+#6. Comparing Models
+
+Comparing VECM model's forecasts with ARIMAs:
+
+```{r}
+result <- rbind(ARIMA_x1,VECM_x1, ARIMA_x2,VECM_x2)
+
+result %>%
+  knitr::kable(digits = 4) %>%
+  kableExtra::kable_styling(full_width = F,
+                            bootstrap_options = c("striped", 
+                                                  "hover", 
+                                                  "condensed"))
+
+```
+
+Conclusion: The forecasts from ARIMA model outperforms that of VECM.
