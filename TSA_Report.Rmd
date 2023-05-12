@@ -25,6 +25,10 @@ knitr::opts_chunk$set(echo = TRUE,
 getwd()
 ```
 
+```{r}
+setwd("D://UW//2. Summer 22-23//1. Time Series Analysis//Project//TSA")
+```
+
 # 1. Data Preparation
 
 Load necessary packages to memory:
@@ -1197,7 +1201,7 @@ VECM_x2 <- colMeans(Data.fore2[, c("mae.x2",
                       "amape.x2")], na.rm = TRUE)  
 ```
 
-#6. Comparing Models
+# 6. Comparing Models
 
 Comparing VECM model's forecasts with ARIMAs:
 

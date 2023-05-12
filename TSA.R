@@ -71,9 +71,9 @@ plot(Data,
 #So our group decide to choose Time Series 1 and 2 for analysis.
 
 #4. Create first difference
-Data$dx1 <- diff.xts(Data$x1)
-Data$dx2 <- diff.xts(Data$x2)
-
+Data$dx1 <- diff.xts(Data$x1, na.pad = FALSE)
+Data$dx2 <- diff.xts(Data$x2, na.pad = FALSE)
+head(Data)
 #Plot both variables on the graph:
 plot(Data[, 1:2],
      col = c("black", "blue"),
@@ -166,7 +166,7 @@ par(mfrow = c(1, 1)) # restore the original single panel
 #So an initial candidate model is an ARIMA(5,1,0). 
 #We also have some variations of this model: ARIMA(5,1,1), ARIMA(4,1,0),ARIMA(3,1,0).
 
-ARIMA(7,1,0)
+#ARIMA(7,1,0)
 arima710 <- Arima(Data$x1,  # variable	
                   order = c(7, 1, 0),  # (p,d,q) parameters	
                   include.constant = TRUE)	
@@ -371,13 +371,13 @@ coeftest(arima310)
 #Step 4. Evaluate Model:
 
 AIC(arima510,arima510_2, arima511, arima512, arima513, arima514, arima515, arima516, arima517,
-    arima410, arima411, arima412, arima413, arima414, arima415, arima416, arima417,
+    arima410, arima411, arima413, arima414, arima415, arima416, arima417,
     arima310, arima311, arima312, arima313,arima314, arima315, arima316, arima317,
     arima710, arima711, arima712, arima713, arima714, arima715, arima716, arima717)
 #Model ARIMA(3,1,3) returns the lowest AIC test.
 
 BIC(arima510,arima510_2, arima511, arima512, arima513, arima514, arima515, arima516, arima517,
-    arima410, arima411, arima412, arima413, arima414, arima415, arima416, arima417,
+    arima410, arima411, arima413, arima414, arima415, arima416, arima417,
     arima310, arima311, arima312, arima313,arima314, arima315, arima316, arima317,
     arima710, arima711, arima712, arima713, arima714, arima715, arima716, arima717)
 #Model ARIMA(3,1,2) returns the lowest BIC test.
@@ -573,12 +573,12 @@ arima315_x2 <- Arima(Data$x2,  # variable
 
 AIC(arima510_x2,arima510_2_x2, arima511_x2, arima512_x2,arima513_x2, arima514_x2, arima515_x2,
     arima410_x2, arima411_x2, arima412_x2, arima413_x2, arima414_x2, arima415_x2,  
-    arima310_x2, arima311_x2, arima312_x2, arima313_x2, arima314_x2, arima315_x2)
+    arima310_x2, arima311_x2, arima314_x2, arima315_x2)
 #ARIMA(5,1,0)
 
 BIC(arima510_x2,arima510_2_x2, arima511_x2, arima512_x2,arima513_x2, arima514_x2, arima515_x2,
     arima410_x2, arima411_x2, arima412_x2, arima413_x2, arima414_x2, arima415_x2,  
-    arima310_x2, arima311_x2, arima312_x2, arima313_x2, arima314_x2, arima315_x2)
+    arima310_x2, arima311_x2, arima314_x2, arima315_x2)
 #ARIMA(5,1,0)
 
 #-> Suggestion model: arima510_x2 - ARIMA(5,1,0)
@@ -795,7 +795,7 @@ apply(Data_x2_Eva[, c("mae", "mse", "mape", "amape")], 2, FUN = median)
 
 #7. Johansen cointegration test
 
-#We will assume the K=5 lag structure:
+#We will assume the K=6 lag structure:
   
 johan.test.trace <- 
 ca.jo(Data[,1:2], # data 
@@ -803,7 +803,7 @@ ca.jo(Data[,1:2], # data
         # "const" for constant term in cointegrating equation and 
         # "trend" for trend variable in cointegrating equation
         type = "trace",  # type of the test: trace or eigen
-        K = 5           # lag order of the series (levels) in the VAR
+        K = 6           # lag order of the series (levels) in the VAR
 )
 
 summary(johan.test.trace) 
@@ -830,7 +830,7 @@ johan.test.eigen <-
         # "const" for constant term in cointegrating equation and 
         # "trend" for trend variable in cointegrating equation
         type = "eigen",  # type of the test: trace or eigen
-        K = 5           # lag order of the series (levels) in the VAR
+        K = 6           # lag order of the series (levels) in the VAR
 ) 
 summary(johan.test.eigen) 
 
@@ -840,48 +840,52 @@ summary(johan.test.eigen)
 
 #Define the specification of the VECM model, with cointegrating vector from either trace or eigen test from Johansen test.
 
-Data.vec5 <- cajorls(johan.test.eigen, # defined specification
+Data.vec6 <- cajorls(johan.test.eigen, # defined specification
                         r = 1) # number of cointegrating vectors
 
-summary(Data.vec5)
+summary(Data.vec6)
 
 #Summary results:
-summary(Data.vec5$rlm)
+summary(Data.vec6$rlm)
 
 #extract the cointegrating vector:
-Data.vec5$beta
+Data.vec6$beta
+
+#extract the adjustment coefficients (check for sign to determine whether ECM works or not):
+johan.test.eigen@W
+-> The adjustment Coeff has different sign here -> ECM works.
 
 #Reparametrize the VEC model into VAR:
-Data.vec5.asVAR <- vec2var(johan.test.eigen, r = 1)
+Data.vec6.asVAR <- vec2var(johan.test.eigen, r = 1)
 
 #Check result:
-Data.vec5.asVAR
+Data.vec6.asVAR
 
 #Calculate and plot Impulse Response Functions:
-plot(irf(Data.vec5.asVAR, n.ahead = 36))
+plot(irf(Data.vec6.asVAR, n.ahead = 36))
 #the residuals need to be stable: first increases then decreases (stablity)
 
 
 #Perform variance decomposition:
-plot(fevd(Data.vec5.asVAR, n.ahead = 36))
+plot(fevd(Data.vec6.asVAR, n.ahead = 36))
 
 
 #Check if model residuals are autocorrelated or not:
 #Residuals can be extracted only from the VAR reparametrized model.
 
-head(residuals(Data.vec5.asVAR))
-serial.test(Data.vec5.asVAR)
+head(residuals(Data.vec6.asVAR))
+serial.test(Data.vec6.asVAR)
 
-#p-value = 0.0831 > p-critical = 5%
+#p-value = 0.6616 > p-critical = 5%
 #The null about no-autocorrelation is fail to Reject.
 #=> There is no auto-correlation in Residuals. 
 
 #Plot ACF and PACF for the model:
-plot(serial.test(Data.vec5.asVAR))
+plot(serial.test(Data.vec6.asVAR))
 
 #Checking the Nomarlity for x1 and x2 by creating Histogram:
 
-Data.vec5.asVAR %>%
+Data.vec6.asVAR %>%
   residuals() %>%
   as_tibble() %>%
   ggplot(aes(`resids of x1`)) +
@@ -898,7 +902,7 @@ Data.vec5.asVAR %>%
     caption = "source: own calculations"
   )
 
-Data.vec5.asVAR %>%
+Data.vec6.asVAR %>%
   residuals() %>%
   as_tibble() %>%
   ggplot(aes(`resids of x2`)) +
@@ -916,14 +920,14 @@ Data.vec5.asVAR %>%
   )
 #We can also check it formally by using the Jarque-Bera (JB) test.
 
-normality.test(Data.vec5.asVAR)
+normality.test(Data.vec6.asVAR)
 
 #p-value > 0.05 => Fail to reject Ho about the normality
 #Conclusion: the residual has a normal distribution.
 
 #9. Forecasting based on the VECM
 
-Data.vec5.fore <- 
+Data.vec6.fore <- 
   predict(
     vec2var(
       johan.test.eigen, 
@@ -931,18 +935,18 @@ Data.vec5.fore <-
     n.ahead = 30, # forecast horizon
     ci = 0.95)    # confidence level for intervals
 
-summary(Data.vec5.fore)
+summary(Data.vec6.fore)
 
 #VEC forecasts for x1
-Data.vec5.fore$fcst$x1
+Data.vec6.fore$fcst$x1
 
 #VEC forecasts for x2
-Data.vec5.fore$fcst$x2
+Data.vec6.fore$fcst$x2
 
 #Lets store it as an xts object. The correct set of dates (index) can be extracted from the out_of_sample xts data object.
 tail(index(out_of_sample), 30)
 
-x1_forecast <- xts(Data.vec5.fore$fcst$x1[,-4], 
+x1_forecast <- xts(Data.vec6.fore$fcst$x1[,-4], 
                     # we exclude the last column with CI
                     tail(index(out_of_sample), 30))
 
@@ -950,7 +954,7 @@ x1_forecast <- xts(Data.vec5.fore$fcst$x1[,-4],
 names(x1_forecast) <- c("x1_fore", "x1_lower", "x1_upper")
 
 #Apply similarly for x2:
-x2_forecast <- xts(Data.vec5.fore$fcst$x2[, -4],
+x2_forecast <- xts(Data.vec6.fore$fcst$x2[, -4],
                     # we exclude the last column with CI
                     tail(index(out_of_sample), 30))
 
@@ -1018,3 +1022,41 @@ result %>%
                                                   "condensed"))
 
 #Conclusion: The forecasts from ARIMA model outperforms that of VECM.
+
+#####################################################################################
+## Additional Task
+
+str(Data)
+head(Data)
+Data[,1:2]
+
+VARselect(Data[,1:2], 
+          lag.max = 7)
+
+library(formattable)
+VARselect(Data[,1:2],      
+          lag.max = 7,     
+          season = 12) 
+
+Data.var6 <- VAR(Data[,1:2],
+                    p = 6)
+summary(Data.var6)
+plot(Data.var6)
+serial.test(Data.var6)
+serial.test(Data.var6, type = "BG")
+
+
+
+########
+Data.var5 <- VAR(Data[,1:2],
+                 p = 5)
+summary(Data.var5)
+plot(Data.var5)
+serial.test(Data.var5)
+serial.test(Data.var6, type = "BG")
+
+AIC(Data.var6,Data.var5)
+BIC(Data.var6,Data.var5)
+-> VAR6 is still better. Chosse to be our model.
+
+plot(irf(Data.var6, n.ahead = 36))
