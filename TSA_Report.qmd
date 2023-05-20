@@ -1,39 +1,40 @@
 ---
-title: "TSA Report"
-date: "2023-06-01"
-output: 
-  html_document:
-    theme: spacelab
-    highlight: tango
+title: "FORECASTING FINANCIAL INSTRUMENTS PRICES WITH VECM AND ARIMA MODELS"
+subtitle: "Home Taken Project 1"
+author: "Nhan Nguyen - Shivam Varshney"
+date: today
+format: 
+  html:
     toc: true
-    toc_float:
-      collapsed: false
-      smooth_scroll: true
-editor_options: 
-  markdown: 
-    wrap: 72
+    toc-depth: 2
+    smooth-scroll: true
+    theme:
+      light: flatly
+      dark: darkly
+  pdf:
+    lof: true
+    lot: true
+    pdf-engine: pdflatex
+    latex-tinytex: false
+editor: visual
 ---
+## TSA_Report
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE,
-                      cache   = TRUE,
-                      message = FALSE, 
-                      warning = FALSE)
-```
-
-```{r}
+```{r} 
+#| echo: false
 getwd()
 ```
 
-```{r}
+```{r} 
+#| echo: false
 setwd("D://UW//2. Summer 22-23//1. Time Series Analysis//Project//TSA")
 ```
-
 # 1. Data Preparation
 
-Load necessary packages to memory:
+Load necessary packages to memory and some pre-defined functions::
 
 ```{r}
+#| echo: false
 library(xts)
 library(tidyverse)
 library(quantmod)
@@ -43,26 +44,16 @@ library(dygraphs)
 library(vars)
 library(knitr)
 library(kableExtra)
-```
-
-Load some pre-defined functions:
-
-```{r}
 source("testdf.R")
-```
-
-```{r}
 source("function_plot_ACF_PACF_resids.R")
 ```
 
 Load Dataset:
-
 ```{r}
 Data <- read.csv("TSA_2023_project_data_1.csv",header = TRUE, dec = ".")
 ```
 
 # 2. Summary Data
-
 ```{r}
 str(Data)
 ```
@@ -76,19 +67,16 @@ Data$X <- as.Date(Data$X,
 ```
 
 Until now the class is "Data.Frame" object
-
 ```{r}
 class(Data) 
 ```
 
 Create xts objects
-
 ```{r}
 Data <- xts(Data[,-1], Data$X)
 ```
 
 After creating xts objects, the class is "xts", "zoo"
-
 ```{r}
 class(Data) 
 ```
@@ -97,12 +85,8 @@ class(Data)
 str(Data)
 ```
 
-```{r}
-Data %>% glimpse()
-```
 
 Checking for missing data
-
 ```{r}
 summary(Data)
 ```
@@ -118,7 +102,6 @@ There is no missing data for the table.
 ## Visualization
 
 Plot 10 Time Series together
-
 ```{r}
 plot(Data,  
      main = "Graph for 10 Time Series",  
@@ -130,7 +113,6 @@ plot(Data,
 ```
 
 Plot 10 Time Series separately
-
 ```{r}
 plot(Data,
      main = "Graph for 10 Time Series",  
@@ -145,14 +127,12 @@ plot(Data,
 So our group decide to choose Time Series 1 and 2 for analysis.
 
 ## Create first difference
-
 ```{r}
 Data$dx1 <- diff.xts(Data$x1)
 Data$dx2 <- diff.xts(Data$x2)
 ```
 
 Plot both variables on the graph:
-
 ```{r}
 plot(Data[, 1:2],
      col = c("black", "blue"),
@@ -168,7 +148,6 @@ plot(Data[, 1:2],
 We perform the tests of integration order.
 
 Testing the order of the time series 1 and its difference:
-
 ```{r}
 testdf(variable = Data$x1,
        max.augmentations = 3)
@@ -177,7 +156,6 @@ testdf(variable = Data$x1,
 Interpret result: The p-bg is very small -\> there are auto-correlation
 in residuals, even when we add the augmentations, we still cant get rid
 of auto-correlation. Hence, we test for its 1st difference.
-
 ```{r}
 testdf(variable = Data$dx1, 
        max.augmentations = 3)
@@ -190,7 +168,6 @@ first differences about non-stationary. Its 1st lag is stationary. We
 can conclude that the Time Series X1 is integrated of order 1.
 
 Testing the order of the time series 2 and its difference:
-
 ```{r}
 testdf(variable = Data$x2,
        max.augmentations = 3)
@@ -216,13 +193,11 @@ order 1.
 so in the next step we can check whether they are cointegrated or not.
 
 ## Estimate Cointegrated Vector
-
 ```{r}
 model.coint <- lm(x1 ~ x2, data = Data)
 ```
 
 Examine the model summary:
-
 ```{r}
 summary(model.coint)
 ```
@@ -231,7 +206,6 @@ Both the intercept and Coefficient for x2 are statistically significant.
 
 The model is significantly explained by x2. We further test the
 stationary of the residuals:
-
 ```{r}
 testdf(variable = residuals(model.coint), max.augmentations = 3)
 ```
@@ -250,7 +224,6 @@ which defines the cointegrating relationship as: 1 \* x1 - 29.853 -
 ## 4.1 Applying for Time Series X1
 
 ### Step 1: Model Parameters
-
 ```{r}
 par(mfrow = c(2, 1)) 
 acf(Data$dx1,
@@ -259,9 +232,6 @@ acf(Data$dx1,
     lwd = 5,               
     col = "dark green",
     na.action = na.pass)   # do not stop if there are missing values in the data
-```
-
-```{r}
 pacf(Data$dx1, 
      lag.max = 36, 
      lwd = 5, col = "dark green",
@@ -275,40 +245,39 @@ candidate model is an ARIMA(5,1,0). We also have some variations of this
 model: ARIMA(5,1,1), ARIMA(4,1,0), ARIMA(3,1,0), ARIMA(7,1,0).
 
 ### Step 2: Model Estimation
-
 ```{r}
-arima510 <- Arima(Data$x1,  # variable	
-                  order = c(5, 1, 0)  # (p,d,q) parameters	
+arima510 <- Arima(Data$x1,  
+                  order = c(5, 1, 0) 	
 )
 ```
 
 ```{r}
-arima511 <- Arima(Data$x1,  # variable	
-                  order = c(5, 1, 1)  # (p,d,q) parameters	
+arima511 <- Arima(Data$x1,	
+                  order = c(5, 1, 1)
 )
 ```
 
 ```{r}
-arima410 <- Arima(Data$x1,  # variable	
-                  order = c(4, 1, 0)  # (p,d,q) parameters	
+arima410 <- Arima(Data$x1, 
+                  order = c(4, 1, 0)
 )
 ```
 
 ```{r}
-arima310 <- Arima(Data$x1,  # variable	
-                  order = c(3, 1, 0)  # (p,d,q) parameters	
+arima310 <- Arima(Data$x1,  
+                  order = c(3, 1, 0)
 )
 ```
 
 ```{r}
-arima313 <- Arima(Data$x1,  # variable	
-                  order = c(3, 1, 3)  # (p,d,q) parameters	
+arima313 <- Arima(Data$x1,
+                  order = c(3, 1, 3)
 )
 ```
 
 ```{r}
-arima710 <- Arima(Data$x1,  # variable	
-                  order = c(7, 1, 0),  # (p,d,q) parameters	
+arima710 <- Arima(Data$x1,	
+                  order = c(7, 1, 0),
 )	
 ```
 
@@ -316,8 +285,8 @@ The above model is not included constant. Let's include constant into
 the model:
 
 ```{r}
-arima510_2 <- Arima(Data$x1,  # variable	
-                  order = c(5, 1, 0),  # (p,d,q) parameters
+arima510_2 <- Arima(Data$x1,	
+                  order = c(5, 1, 0),
                   include.constant = TRUE)  # including a constant
 ```
 
@@ -333,37 +302,31 @@ keep the model without constant.
 ```{r}
 coeftest(arima510)
 ```
-
 All the terms/coeffs are significant.
 
 ```{r}
 coeftest(arima511)
 ```
-
 All the terms/coeffs are significant, except MA1.
 
 ```{r}
 coeftest(arima410)
 ```
-
 All the terms/coeffs are significant.
 
 ```{r}
 coeftest(arima310)
 ```
-
 All the terms/coeffs are significant.
 
 ```{r}
 coeftest(arima313)
 ```
-
 All the terms/coeffs are significant, except MA1, MA3.
 
 ```{r}
 coeftest(arima710)
 ```
-
 All the terms/coeffs are significant, except AR5, AR7.
 
 ### Step 3: Model Diagnostics
@@ -475,7 +438,6 @@ Hence, the residual is white-noise.
 Plot graph for Ljung-Box test:
 
 For model ARIMA(5,1,0)
-
 ```{r}
 bj_pvalues = c()
 for(i in c(1:100)){
@@ -490,7 +452,6 @@ abline(h = 0.05, col='red')
 ```
 
 ARIMA(3,1,3)
-
 ```{r}
 bj_pvalues = c()
 
@@ -522,22 +483,17 @@ BIC(arima510, arima511,
     arima710)
 ```
 
-Model ARIMA(5,1,0) returns the lowest BIC test; Model ARIMA(3,1,3) comes
-second.
+Model ARIMA(5,1,0) returns the lowest BIC test; Model ARIMA(3,1,3) comes second.
 
 However, we should prefer AIC over BIC.
 
-***Conclusion:*** From the perspective of sensibility, the ARIMA(3,1,3)
-seems to be the most attractive one: all terms are significant,
-residuals are white noise and we observe low values of information
-criteria (IC).
+***Conclusion:*** From the perspective of sensibility, the ARIMA(3,1,3) seems to be the most attractive one: all terms are significant, residuals are white noise and we observe low values of information criteria (IC).
 
 Hence, we use ARIMA(3,1,3) for forecasting Time Series X1.
 
 ## 4.1 Applying for Time Series X2
 
 ### Step 1: Model Parameters
-
 ```{r}
 par(mfrow = c(2, 1)) 
 acf(Data$dx2,
@@ -560,34 +516,33 @@ model is an ARIMA(5,1,0). We also have some variations of this model:
 ARIMA(5,1,1), ARIMA(4,1,0), ARIMA(3,1,0).
 
 ### Step 2: Model Estimation
-
 ```{r}
-arima510_x2 <- Arima(Data$x2,  # variable	
-                  order = c(5, 1, 0)  # (p,d,q) parameters
+arima510_x2 <- Arima(Data$x2,	
+                  order = c(5, 1, 0)
 )	
 ```
 
 ```{r}
-arima511_x2 <- Arima(Data$x2,  # variable	
-                     order = c(5, 1, 1)  # (p,d,q) parameters
+arima511_x2 <- Arima(Data$x2,
+                     order = c(5, 1, 1)
 )
 ```
 
 ```{r}
-arima410_x2 <- Arima(Data$x2,  # variable	
-                     order = c(4, 1, 0)  # (p,d,q) parameters
+arima410_x2 <- Arima(Data$x2,
+                     order = c(4, 1, 0)
 )
 ```
 
 ```{r}
-arima310_x2 <- Arima(Data$x2,  # variable	
-                     order = c(3, 1, 0)  # (p,d,q) parameters
+arima310_x2 <- Arima(Data$x2,
+                     order = c(3, 1, 0)
 )
 ```
 
 ```{r}
-arima313_x2 <- Arima(Data$x2,  # variable	
-                     order = c(3, 1, 3)  # (p,d,q) parameters
+arima313_x2 <- Arima(Data$x2,
+                     order = c(3, 1, 3)
 )
 ```
 
@@ -595,48 +550,41 @@ The above model is not included constant. Let's include constant into
 the model:
 
 ```{r}
-arima510_2_x2 <- Arima(Data$x2,  # variable	
-                    order = c(5, 1, 0),  # (p,d,q) parameters
-                    include.constant = TRUE)  # including a constant
+arima510_2_x2 <- Arima(Data$x2,
+                    order = c(5, 1, 0),
+                    include.constant = TRUE)
 ```
 
 Adding the constant did not change the result much for ALL MODELS, so we
 keep the model without constant.
 
 ***Summary Results:***
-
 ```{r}
 coeftest(arima510_x2)
 ```
-
 All parameters are significant.
 
 ```{r}
 coeftest(arima511_x2)
 ```
-
 All parameters are significant, except MA1.
 
 ```{r}
 coeftest(arima410_x2)
 ```
-
 All parameters are significant.
 
 ```{r}
 coeftest(arima310_x2)
 ```
-
 All parameters are significant.
 
 ```{r}
 coeftest(arima313_x2)
 ```
-
 All parameters are significant, except MA3.
 
 ### Step 3: Model Diagnostics
-
 ```{r}
 plot(resid(arima510_x2))
 ```
@@ -658,14 +606,12 @@ plot(resid(arima313_x2))
 ```
 
 ***The Ljung-Box test:***
-
 ```{r}
 Box.test(resid(arima510_x2), type = "Ljung-Box", lag = 10)
 Box.test(resid(arima510_x2), type = "Ljung-Box", lag = 15)
 Box.test(resid(arima510_x2), type = "Ljung-Box", lag = 20)
 Box.test(resid(arima510_x2), type = "Ljung-Box", lag = 25)
 ```
-
 -\> Very large p-values: The residual is white-noise
 
 ```{r}
@@ -674,7 +620,6 @@ Box.test(resid(arima511_x2), type = "Ljung-Box", lag = 15)
 Box.test(resid(arima511_x2), type = "Ljung-Box", lag = 20)
 Box.test(resid(arima511_x2), type = "Ljung-Box", lag = 25)
 ```
-
 -\> Very large p-values: The residual is white-noise
 
 ```{r}
@@ -683,7 +628,6 @@ Box.test(resid(arima410_x2), type = "Ljung-Box", lag = 15)
 Box.test(resid(arima410_x2), type = "Ljung-Box", lag = 20)
 Box.test(resid(arima410_x2), type = "Ljung-Box", lag = 25)
 ```
-
 -\> Not so large p-values: The residual is not really a white-noise for
 lag20.
 
@@ -693,7 +637,6 @@ Box.test(resid(arima310_x2), type = "Ljung-Box", lag = 15)
 Box.test(resid(arima310_x2), type = "Ljung-Box", lag = 20)
 Box.test(resid(arima310_x2), type = "Ljung-Box", lag = 25)
 ```
-
 -\> Very small p-values: The residual is auto-correlated
 
 ```{r}
@@ -702,7 +645,6 @@ Box.test(resid(arima313_x2), type = "Ljung-Box", lag = 15)
 Box.test(resid(arima313_x2), type = "Ljung-Box", lag = 20)
 Box.test(resid(arima313_x2), type = "Ljung-Box", lag = 25)
 ```
-
 -\> Very large p-values: The residual is white-noise
 
 Plot graph for Ljung-Box test:
@@ -721,14 +663,12 @@ abline(h=0.05, col='red')
 ```
 
 ### Step 4. Evaluate Model
-
 ```{r}
 AIC(arima510_x2,arima511_x2,
     arima410_x2,  
     arima310_x2, arima313_x2)
 
 ```
-
 -\> Suggestion model: arima313_x2 - ARIMA(3,1,3)
 
 ```{r}
@@ -736,23 +676,18 @@ BIC(arima510_x2,arima511_x2,
     arima410_x2,  
     arima310_x2, arima313_x2)
 ```
-
 -\> Suggestion model: arima510_x2 - ARIMA(5,1,0)
 
 ***Conclusion:***
+From the perspective of sensibility, the ARIMA(5,1,0) seems to be the most attractive one:
 
-From the perspective of sensibility, the ARIMA(5,1,0) seems to be the
-most attractive one:
-
-all terms are significant, residuals are white noise and we observe low
-values of information criteria (IC).
+all terms are significant, residuals are white noise and we observe low values of information criteria (IC).
 
 -\> Suggestion model: arima510_x2 - ARIMA(5,1,0)
 
 ## 4.3 ARIMA Forecast for X1 & X2
 
 Import Data Forecast:
-
 ```{r}
 out_of_sample <-read.csv("Out_of_sample.csv",header = TRUE, dec = ".")
 ```
@@ -762,28 +697,23 @@ class(out_of_sample)
 ```
 
 Change Date
-
 ```{r}
 out_of_sample$X <- as.Date(out_of_sample$X, 
                            format = "%d-%m-%y") 
 ```
 
 Create xts objects
-
 ```{r}
 out_of_sample <- xts(out_of_sample[,-1], out_of_sample$X)
 ```
 
 Assign forecast X1 to object oos_x1
-
 ```{r}
 oos_x1 <- out_of_sample$x1
 oos_x1
-
 ```
 
 ### Forecast for X1
-
 ```{r}
 tail(Data, 12)
 ```
@@ -796,7 +726,6 @@ forecasts_x1
 ```
 
 Extract the forecast points
-
 ```{r}
 forecasts_x1$mean
 class(forecasts_x1$mean)
@@ -805,14 +734,12 @@ class(forecasts_x1$mean)
 It is a ts object, not xts! However, the xts objects are more convenient
 and modern. In terms of plotting the real data and forecast data to
 compare.
-
 ```{r}
 forecasts_x1$lower
 forecasts_x1$upper
 ```
 
 Create xts object: (We use the second column (95% confidence interval))
-
 ```{r}
 forecasts_x1_data <- data.frame(f_mean = as.numeric(forecasts_x1$mean),
                              f_lower = as.numeric(forecasts_x1$lower[, 2]),
@@ -824,14 +751,12 @@ head(forecasts_x1_data,30)
 ```
 
 Adding real value X1 below the current Dataset:
-
 ```{r}
 Data_x1 <- rbind(Data[, "x1"], oos_x1)
 tail(Data_x1, n = 40)
 ```
 
 Turn Forecast with Index into Forecast with Date
-
 ```{r}
 forecasts_x1_xts <- xts(forecasts_x1_data,
                      order.by = index(oos_x1))
@@ -839,7 +764,6 @@ forecasts_x1_xts
 ```
 
 Merge it together with the original data
-
 ```{r}
 Data_x1_combined <- merge(Data_x1, forecasts_x1_xts)
 head(Data_x1_combined)
@@ -847,7 +771,6 @@ tail(Data_x1_combined,40)
 ```
 
 Plot Chart
-
 ```{r}
 plot(Data_x1_combined [, c("x1", "f_mean", "f_lower", "f_upper")], 
      major.ticks = "years", 
@@ -867,7 +790,6 @@ plot(Data_x1_combined ["2020-11/", c("x1", "f_mean", "f_lower", "f_upper")],
 ```
 
 Extract Data for Evaluating the Forecast:
-
 ```{r}
 Data_x1_Eva <- tail(Data_x1_combined, 30)  
 Data_x1_Eva
@@ -890,10 +812,8 @@ apply(Data_x1_Eva[, c("mae", "mse", "mape", "amape")], 2, FUN = median)
 ### Forecast for X2
 
 Assign forecast X2 to object oos_x2
-
 ```{r}
 oos_x2 <- out_of_sample$x2
-
 oos_x2
 ```
 
@@ -902,12 +822,10 @@ tail(Data, 12)
 
 forecasts_x2 <- forecast(arima510_x2, # model for prediction
                          h = 30) # how many periods outside the sample
-
 forecasts_x2
 ```
 
 Extract the forecast points
-
 ```{r}
 forecasts_x2$mean
 class(forecasts_x2$mean)
@@ -916,14 +834,12 @@ class(forecasts_x2$mean)
 It is a ts object, not xts! However, the xts objects are more convenient
 and modern. In terms of plotting the real data and forecast data to
 compare.
-
 ```{r}
 forecasts_x2$lower
 forecasts_x2$upper
 ```
 
 Create xts object: (We use the second column (95% confidence interval))
-
 ```{r}
 forecasts_x2_data <- data.frame(f_mean = as.numeric(forecasts_x2$mean),
                                 f_lower = as.numeric(forecasts_x2$lower[, 2]),
@@ -935,14 +851,12 @@ head(forecasts_x2_data,30)
 ```
 
 Adding real value X2 below the current Dataset:
-
 ```{r}
 Data_x2 <- rbind(Data[, "x2"], oos_x2)
 tail(Data_x2, n = 40)
 ```
 
 Turn Forecast with Index into Forecast with Date
-
 ```{r}
 forecasts_x2_xts <- xts(forecasts_x2_data,
                         order.by = index(oos_x2))
@@ -950,7 +864,6 @@ forecasts_x2_xts
 ```
 
 Merge it together with the original data
-
 ```{r}
 Data_x2_combined <- merge(Data_x2, forecasts_x2_xts)
 head(Data_x2_combined)
@@ -958,7 +871,6 @@ tail(Data_x2_combined,40)
 ```
 
 Plot Chart
-
 ```{r}
 plot(Data_x2_combined ["2020-11/", c("x2", "f_mean", "f_lower", "f_upper")], 
      major.ticks = "years", 
@@ -969,7 +881,6 @@ plot(Data_x2_combined ["2020-11/", c("x2", "f_mean", "f_lower", "f_upper")],
 ```
 
 Extract Data for Evaluating the Forecast:
-
 ```{r}
 Data_x2_Eva <- tail(Data_x2_combined, 30)  
 Data_x2_Eva
@@ -993,7 +904,6 @@ apply(Data_x2_Eva[, c("mae", "mse", "mape", "amape")], 2, FUN = median)
 ## 5.1. Johansen Cointegration Test
 
 Determine the lag for Johansen test:
-
 ```{r}
 VARselect(Data[,1:2], 
           lag.max = 7)
@@ -1002,7 +912,6 @@ VARselect(Data[,1:2],
 Three out of four tests suggests K = 6.
 
 We will choose the K=6 lag structure:
-
 ```{r}
 johan.test.trace <- 
 ca.jo(Data[,1:2], # data 
@@ -1032,19 +941,16 @@ Next, we test the hypothesis of r=1: Test Statistic \< Critical Value:
 we CANNOT reject the null about 1 cointegrating vector.
 
 The model has ONLY 1 cointegrating vector.
-
 ```{r}
 summary(johan.test.trace)@V
 ```
 
 Weights W:
-
 ```{r}
 summary(johan.test.trace)@W
 ```
 
 Check for another type of test: for Eigen:
-
 ```{r}
 johan.test.eigen <- 
   ca.jo(Data[,1:2], # data 
@@ -1063,7 +969,6 @@ The conclusion stays the same: There is only one cointegrating vector.
 
 Define the specification of the VECM model, with cointegrating vector
 from either trace or eigen test from Johansen test.
-
 ```{r}
 Data.vec6 <- cajorls(johan.test.eigen, # defined specification
                         r = 1) # number of cointegrating vectors
@@ -1072,20 +977,17 @@ summary(Data.vec6)
 ```
 
 Summary results:
-
 ```{r}
 summary(Data.vec6$rlm)
 ```
 
 extract the cointegrating vector:
-
 ```{r}
 Data.vec6$beta
 ```
 
 extract the adjustment coefficients (check for sign to determine whether
 ECM works or not):
-
 ```{r}
 johan.test.eigen@W
 ```
@@ -1094,19 +996,16 @@ Conclusion about whether Error Correction Mechanism work: The adjustment
 Coeff has different sign here -\> ECM works.
 
 Reparametrizing the VEC model into VAR:
-
 ```{r}
 Data.vec6.asVAR <- vec2var(johan.test.eigen, r = 1)
 ```
 
 Check result:
-
 ```{r}
 Data.vec6.asVAR
 ```
 
 Calculate and plot Impulse Response Functions:
-
 ```{r}
 plot(irf(Data.vec6.asVAR, n.ahead = 36), ask = FALSE)
 ```
@@ -1114,14 +1013,12 @@ plot(irf(Data.vec6.asVAR, n.ahead = 36), ask = FALSE)
 The residuals seem to be stable: first increases then decreases.
 
 Perform variance decomposition:
-
 ```{r}
 plot(fevd(Data.vec6.asVAR, n.ahead = 36), ask = FALSE)
 ```
 
 Check if model residuals are autocorrelated or not: Residuals can be
 extracted only from the VAR reparametrized model.
-
 ```{r}
 head(residuals(Data.vec6.asVAR))
 serial.test(Data.vec6.asVAR)
@@ -1134,13 +1031,11 @@ The null about no-autocorrelation is fail to Reject.
 =\> There is no auto-correlation in Residuals.
 
 Plot ACF and PACF for the model:
-
 ```{r}
 plot(serial.test(Data.vec6.asVAR))
 ```
 
 Checking the Nomarlity for x1 and x2 by creating Histogram:
-
 ```{r}
 Data.vec6.asVAR %>%
   residuals() %>%
@@ -1180,7 +1075,6 @@ Data.vec6.asVAR %>%
 ```
 
 We can also check it formally by using the Jarque-Bera (JB) test.
-
 ```{r}
 normality.test(Data.vec6.asVAR)
 ```
@@ -1204,20 +1098,17 @@ summary(Data.vec6.fore)
 ```
 
 VEC forecasts for x1
-
 ```{r}
 Data.vec6.fore$fcst$x1
 ```
 
 VEC forecasts for x2
-
 ```{r}
 Data.vec6.fore$fcst$x2
 ```
 
 Lets store it as an xts object. The correct set of dates (index) can be
 extracted from the out_of_sample xts data object.
-
 ```{r}
 tail(index(out_of_sample), 30)
 ```
@@ -1229,13 +1120,11 @@ x1_forecast <- xts(Data.vec6.fore$fcst$x1[,-4],
 ```
 
 Correction of the variable names:
-
 ```{r}
 names(x1_forecast) <- c("x1_fore", "x1_lower", "x1_upper")
 ```
 
 Apply similarly for x2:
-
 ```{r}
 x2_forecast <- xts(Data.vec6.fore$fcst$x2[, -4],
                     # we exclude the last column with CI
@@ -1246,7 +1135,6 @@ names(x2_forecast) <- c("x2_fore", "x2_lower", "x2_upper")
 ```
 
 Merge forecast into orignial data:
-
 ```{r}
 Data.fore <- merge(out_of_sample[,1:2], 
                  x1_forecast,
@@ -1258,7 +1146,6 @@ tail(Data.fore,40)
 ```
 
 Plot chart for Forecast:
-
 ```{r}
 plot(Data.fore ["2020-11/", c("x1", "x1_fore", "x1_lower", "x1_upper")], 
      major.ticks = "years", 
@@ -1280,7 +1167,6 @@ plot(Data.fore ["2020-11/", c("x2", "x2_fore", "x2_lower", "x2_upper")],
 ## 5.4. Evaluate Forecast Accuracy
 
 Extract the out-of-sample data to evaluate:
-
 ```{r}
 Data.fore2 <- Data.fore[,-30]
 ```
@@ -1300,7 +1186,6 @@ Data.fore2$amape.x2 <-  abs(Data.fore2$x2 - Data.fore2$x2_fore)/(Data.fore2$x2 +
 ```
 
 and calculate its averages
-
 ```{r}
 VECM_x1 <- colMeans(Data.fore2[, c("mae.x1", 
                       "mse.x1",
@@ -1318,7 +1203,6 @@ VECM_x2 <- colMeans(Data.fore2[, c("mae.x2",
 # 6. Comparing Models
 
 Comparing VECM model's forecasts with ARIMAs:
-
 ```{r}
 result <- rbind(ARIMA_x1,VECM_x1, ARIMA_x2,VECM_x2)
 
@@ -1328,7 +1212,6 @@ result %>%
                             bootstrap_options = c("striped", 
                                                   "hover", 
                                                   "condensed"))
-
 ```
 
 **Conclusion:**
@@ -1338,3 +1221,5 @@ ARIMA.
 
 For Timeseries x2: The forecasts from ARIMA model outperforms that of
 VECM.
+
+
