@@ -259,6 +259,9 @@ acf(Data$dx1,
     lwd = 5,               
     col = "dark green",
     na.action = na.pass)   # do not stop if there are missing values in the data
+```
+
+```{r}
 pacf(Data$dx1, 
      lag.max = 36, 
      lwd = 5, col = "dark green",
@@ -267,9 +270,9 @@ pacf(Data$dx1,
 par(mfrow = c(1, 1)) # restore the original single panel
 ```
 
-The PACF shown is suggestive of an AR(5) model. So an initial candidate
-model is an ARIMA(5,1,0). We also have some variations of this model:
-ARIMA(5,1,1), ARIMA(4,1,0),ARIMA(3,1,0), ARIMA(3,1,3).
+The PACF shown is suggestive of an AR(5) model or AR(7). So an initial
+candidate model is an ARIMA(5,1,0). We also have some variations of this
+model: ARIMA(5,1,1), ARIMA(4,1,0), ARIMA(3,1,0), ARIMA(7,1,0).
 
 ### Step 2: Model Estimation
 
@@ -280,14 +283,33 @@ arima510 <- Arima(Data$x1,  # variable
 ```
 
 ```{r}
+arima511 <- Arima(Data$x1,  # variable	
+                  order = c(5, 1, 1)  # (p,d,q) parameters	
+)
+```
+
+```{r}
+arima410 <- Arima(Data$x1,  # variable	
+                  order = c(4, 1, 0)  # (p,d,q) parameters	
+)
+```
+
+```{r}
+arima310 <- Arima(Data$x1,  # variable	
+                  order = c(3, 1, 0)  # (p,d,q) parameters	
+)
+```
+
+```{r}
 arima313 <- Arima(Data$x1,  # variable	
                   order = c(3, 1, 3)  # (p,d,q) parameters	
 )
 ```
 
 ```{r}
-coeftest(arima510)
-summary(arima510)
+arima710 <- Arima(Data$x1,  # variable	
+                  order = c(7, 1, 0),  # (p,d,q) parameters	
+)	
 ```
 
 The above model is not included constant. Let's include constant into
@@ -303,8 +325,46 @@ arima510_2 <- Arima(Data$x1,  # variable
 coeftest(arima510_2)
 ```
 
-Adding the constant did not change the result much, so we keep the model
-without constant
+Adding the constant did not change the result much for ALL MODELS, so we
+keep the model without constant.
+
+\*\*\*Summary All The Models:\*\*\*
+
+```{r}
+coeftest(arima510)
+```
+
+All the terms/coeffs are significant.
+
+```{r}
+coeftest(arima511)
+```
+
+All the terms/coeffs are significant, except MA1.
+
+```{r}
+coeftest(arima410)
+```
+
+All the terms/coeffs are significant.
+
+```{r}
+coeftest(arima310)
+```
+
+All the terms/coeffs are significant.
+
+```{r}
+coeftest(arima313)
+```
+
+All the terms/coeffs are significant, except MA1, MA3.
+
+```{r}
+coeftest(arima710)
+```
+
+All the terms/coeffs are significant, except AR5, AR7.
 
 ### Step 3: Model Diagnostics
 
@@ -313,13 +373,49 @@ plot(resid(arima510))
 ```
 
 ```{r}
+plot(resid(arima511),col = "royalblue")
+```
+
+```{r}
+plot(resid(arima410),col = "royalblue")
+```
+
+```{r}
+plot(resid(arima310),col = "royalblue")
+```
+
+```{r}
 plot(resid(arima313), col = "royalblue3")
+```
+
+```{r}
+plot(resid(arima710),col = "royalblue")
 ```
 
 Lets check the ACF and the PACF of the Residual values:
 
 ```{r}
 plot_ACF_PACF_resids(arima510)
+```
+
+```{r}
+plot_ACF_PACF_resids(arima511)
+```
+
+```{r}
+plot_ACF_PACF_resids(arima410)
+```
+
+```{r}
+plot_ACF_PACF_resids(arima310)
+```
+
+```{r}
+plot_ACF_PACF_resids(arima313)
+```
+
+```{r}
+plot_ACF_PACF_resids(arima710)
 ```
 
 The Ljung-Box test:
@@ -332,23 +428,83 @@ Box.test(resid(arima510), type = "Ljung-Box", lag = 25)
 ```
 
 ```{r}
+plot_ACF_PACF_resids(arima511)
+```
+
+```{r}
+plot_ACF_PACF_resids(arima410)
+```
+
+```{r}
+plot_ACF_PACF_resids(arima310)
+```
+
+```{r}
+plot_ACF_PACF_resids(arima710)
+```
+
+The Ljung-Box test:
+
+```{r}
+Box.test(resid(arima510), type = "Ljung-Box", lag = 10)
+Box.test(resid(arima510), type = "Ljung-Box", lag = 15)
+Box.test(resid(arima510), type = "Ljung-Box", lag = 20)
+Box.test(resid(arima510), type = "Ljung-Box", lag = 25)
+```
+
+```{r}
+Box.test(resid(arima511), type = "Ljung-Box", lag = 10)
+Box.test(resid(arima511), type = "Ljung-Box", lag = 15)
+Box.test(resid(arima511), type = "Ljung-Box", lag = 20)
+Box.test(resid(arima511), type = "Ljung-Box", lag = 25)
+```
+
+```{r}
+Box.test(resid(arima410), type = "Ljung-Box", lag = 10)
+Box.test(resid(arima410), type = "Ljung-Box", lag = 15)
+Box.test(resid(arima410), type = "Ljung-Box", lag = 20)
+Box.test(resid(arima410), type = "Ljung-Box", lag = 25)
+```
+
+```{r}
+Box.test(resid(arima310), type = "Ljung-Box", lag = 10)
+Box.test(resid(arima310), type = "Ljung-Box", lag = 15)
+Box.test(resid(arima310), type = "Ljung-Box", lag = 20)
+Box.test(resid(arima310), type = "Ljung-Box", lag = 25)
+```
+
+We have very low p-values, greater than 5% -\> Reject Ho about no
+autocorrelation
+
+Hence, the residual is auto-correlated in model ARIMA(3,1,0).
+
+```{r}
 Box.test(resid(arima313), type = "Ljung-Box", lag = 10)
 Box.test(resid(arima313), type = "Ljung-Box", lag = 15)
 Box.test(resid(arima313), type = "Ljung-Box", lag = 20)
 Box.test(resid(arima313), type = "Ljung-Box", lag = 25)
 ```
 
--\> Very large p-values: The residual is white-noise
+```{r}
+Box.test(resid(arima710), type = "Ljung-Box", lag = 10)
+Box.test(resid(arima710), type = "Ljung-Box", lag = 15)
+Box.test(resid(arima710), type = "Ljung-Box", lag = 20)
+Box.test(resid(arima710), type = "Ljung-Box", lag = 25)
+```
+
+We have very large p-values, greater than 5% for all models (except
+ARIMA(3,1,0)) -\> fail to reject Ho about no autocorrelation
+
+Hence, the residual is white-noise.
 
 Plot graph for Ljung-Box test:
 
-```{r}
-bj_pvalues = c()
-```
+For model ARIMA(5,1,0)
 
 ```{r}
+bj_pvalues = c()
 for(i in c(1:100)){
-  bj = Box.test(resid(arima313), type = "Ljung-Box", lag = i)
+  bj = Box.test(resid(arima510), type = "Ljung-Box", lag = i)
   bj_pvalues = append(bj_pvalues,bj$p.value)
 }
 
@@ -358,123 +514,50 @@ abline(h = 0.05, col='red')
 
 ```
 
-Model ARIMA(5,1,1)
+ARIMA(3,1,3)
 
 ```{r}
+bj_pvalues = c()
 
-arima511 <- Arima(Data$x1,  # variable	
-                    order = c(5, 1, 1),  # (p,d,q) parameters
-                    include.constant = TRUE)  # including a constant
-```
+for(i in c(1:100)){
+  bj = Box.test(resid(arima313), type = "Ljung-Box", lag = i)
+  bj_pvalues = append(bj_pvalues,bj$p.value)
+}
 
-```{r}
-coeftest(arima511)
-```
+plot(bj_pvalues, type='l')
 
-ARIMA(4,1,0)
-
-```{r}
-arima410 <- Arima(Data$x1,  # variable	
-                  order = c(4, 1, 0),  # (p,d,q) parameters
-                  include.constant = TRUE)  # including a constant
-```
-
-```{r}
-coeftest(arima410)
-```
-
-ARIMA(3,1,0).
-
-```{r}
-arima310 <- Arima(Data$x1,  # variable	
-                  order = c(3, 1, 0),  # (p,d,q) parameters
-                  include.constant = TRUE)  # including a constant
-```
-
-```{r}
-coeftest(arima310)
+abline(h = 0.05, col='red')
 ```
 
 ###Step 4. Evaluate Model
 
 ```{r}
-AIC(arima510,arima510_2, arima511, arima410, arima310, arima313)
-BIC(arima510, arima510_2, arima511, arima410, arima310, arima313)
+AIC(arima510, arima511,
+    arima410, 
+    arima310, arima313,
+    arima710)
 ```
 
--\> Suggestion ARIMA(3,1,3)
-
-Cross check with Auto Correlation:
+Model ARIMA(3,1,3) returns the lowest AIC test.
 
 ```{r}
-
-arima.best.AIC <- 
-  auto.arima(Data$x1,
-             d = 1,             # parameter d of ARIMA model
-             max.p = 6,         # Maximum value of p
-             max.q = 6,         # Maximum value of q
-             max.order = 12,    # maximum p+q
-             start.p = 1,       # Starting value of p in stepwise procedure
-             start.q = 1,       # Starting value of q in stepwise procedure
-             ic = "aic",        # Information criterion to be used in model selection.
-             stepwise = FALSE,  # if FALSE considers all models
-             allowdrift = TRUE, # include a constant
-             trace = TRUE)      # show summary of all models considered
+BIC(arima510, arima511,
+    arima410,
+    arima310, arima313,
+    arima710)
 ```
 
-Return: Best model: ARIMA(4,1,2)
+Model ARIMA(5,1,0) returns the lowest BIC test; Model ARIMA(3,1,3) comes
+second.
 
-```{r}
-arima412 <- Arima(Data$x1,  # variable	
-                  order = c(4, 1, 2),  # (p,d,q) parameters
-                  include.constant = TRUE)  # including a constant
-```
+However, we should prefer AIC over BIC.
 
-```{r}
-coeftest(arima412)
-```
+***Conclusion:*** From the perspective of sensibility, the ARIMA(3,1,3)
+seems to be the most attractive one: all terms are significant,
+residuals are white noise and we observe low values of information
+criteria (IC).
 
-```{r}
-AIC(arima313,arima412)
-BIC(arima313,arima412)
-```
-
-Check for BIC best:
-
-```{r}
-arima.best.BIC <- 
-  auto.arima(Data$x1,
-             d = 1,             # parameter d of ARIMA model
-             max.p = 6,         # Maximum value of p
-             max.q = 6,         # Maximum value of q
-             max.order = 12,    # maximum p+q
-             start.p = 1,       # Starting value of p in stepwise procedure
-             start.q = 1,       # Starting value of q in stepwise procedure
-             ic = "bic",        # Information criterion to be used in model selection.
-             stepwise = FALSE,  # if FALSE considers all models
-             allowdrift = TRUE, # include a constant
-             trace = TRUE)      # show summary of all models considered
-```
-
-Return: Best model: ARIMA(3,1,2)
-
-```{r}
-
-arima312 <- Arima(Data$x1,  # variable	
-                  order = c(3, 1, 2),  # (p,d,q) parameters
-                  include.constant = TRUE)  # including a constant
-```
-
-```{r}
-coeftest(arima312)
-```
-
-```{r}
-AIC(arima313,arima412,arima312)
-BIC(arima313,arima412,arima312)
-```
-
-***Conclusion:*** ARIMA(3,1,3) for forcasting Time Series X1.
+Hence, we use ARIMA(3,1,3) for forecasting Time Series X1.
 
 ## 4.1 Applying for Time Series X2
 
@@ -499,7 +582,7 @@ par(mfrow = c(1, 1)) # restore the original single panel
 
 The PACF shown is suggestive of an AR(5) model. So an initial candidate
 model is an ARIMA(5,1,0). We also have some variations of this model:
-ARIMA(5,1,1), ARIMA(4,1,0),ARIMA(3,1,0).
+ARIMA(5,1,1), ARIMA(4,1,0), ARIMA(3,1,0).
 
 ### Step 2: Model Estimation
 
@@ -507,8 +590,30 @@ ARIMA(5,1,1), ARIMA(4,1,0),ARIMA(3,1,0).
 arima510_x2 <- Arima(Data$x2,  # variable	
                   order = c(5, 1, 0)  # (p,d,q) parameters
 )	
-coeftest(arima510_x2)
-summary(arima510_x2)
+```
+
+```{r}
+arima511_x2 <- Arima(Data$x2,  # variable	
+                     order = c(5, 1, 1)  # (p,d,q) parameters
+)
+```
+
+```{r}
+arima410_x2 <- Arima(Data$x2,  # variable	
+                     order = c(4, 1, 0)  # (p,d,q) parameters
+)
+```
+
+```{r}
+arima310_x2 <- Arima(Data$x2,  # variable	
+                     order = c(3, 1, 0)  # (p,d,q) parameters
+)
+```
+
+```{r}
+arima313_x2 <- Arima(Data$x2,  # variable	
+                     order = c(3, 1, 3)  # (p,d,q) parameters
+)
 ```
 
 The above model is not included constant. Let's include constant into
@@ -518,12 +623,42 @@ the model:
 arima510_2_x2 <- Arima(Data$x2,  # variable	
                     order = c(5, 1, 0),  # (p,d,q) parameters
                     include.constant = TRUE)  # including a constant
-
-coeftest(arima510_2_x2)
 ```
 
-Adding the constant did not change the result much, so we keep the model
-without constant
+Adding the constant did not change the result much for ALL MODELS, so we
+keep the model without constant.
+
+***Summary Results:***
+
+```{r}
+coeftest(arima510_x2)
+```
+
+All parameters are significant.
+
+```{r}
+coeftest(arima511_x2)
+```
+
+All parameters are significant, except MA1.
+
+```{r}
+coeftest(arima410_x2)
+```
+
+All parameters are significant.
+
+```{r}
+coeftest(arima310_x2)
+```
+
+All parameters are significant.
+
+```{r}
+coeftest(arima313_x2)
+```
+
+All parameters are significant, except MA3.
 
 ### Step 3: Model Diagnostics
 
@@ -531,13 +666,66 @@ without constant
 plot(resid(arima510_x2))
 ```
 
-The Ljung-Box test:
+```{r}
+plot(resid(arima511_x2))
+```
+
+```{r}
+plot(resid(arima410_x2))
+```
+
+```{r}
+plot(resid(arima310_x2))
+```
+
+```{r}
+plot(resid(arima313_x2))
+```
+
+***The Ljung-Box test:***
 
 ```{r}
 Box.test(resid(arima510_x2), type = "Ljung-Box", lag = 10)
 Box.test(resid(arima510_x2), type = "Ljung-Box", lag = 15)
 Box.test(resid(arima510_x2), type = "Ljung-Box", lag = 20)
 Box.test(resid(arima510_x2), type = "Ljung-Box", lag = 25)
+```
+
+-\> Very large p-values: The residual is white-noise
+
+```{r}
+Box.test(resid(arima511_x2), type = "Ljung-Box", lag = 10)
+Box.test(resid(arima511_x2), type = "Ljung-Box", lag = 15)
+Box.test(resid(arima511_x2), type = "Ljung-Box", lag = 20)
+Box.test(resid(arima511_x2), type = "Ljung-Box", lag = 25)
+```
+
+-\> Very large p-values: The residual is white-noise
+
+```{r}
+Box.test(resid(arima410_x2), type = "Ljung-Box", lag = 10)
+Box.test(resid(arima410_x2), type = "Ljung-Box", lag = 15)
+Box.test(resid(arima410_x2), type = "Ljung-Box", lag = 20)
+Box.test(resid(arima410_x2), type = "Ljung-Box", lag = 25)
+```
+
+-\> Not so large p-values: The residual is not really a white-noise for
+lag20.
+
+```{r}
+Box.test(resid(arima310_x2), type = "Ljung-Box", lag = 10)
+Box.test(resid(arima310_x2), type = "Ljung-Box", lag = 15)
+Box.test(resid(arima310_x2), type = "Ljung-Box", lag = 20)
+Box.test(resid(arima310_x2), type = "Ljung-Box", lag = 25)
+```
+
+-\> Very small p-values: The residual is auto-correlated
+
+```{r}
+Box.test(resid(arima313_x2), type = "Ljung-Box", lag = 10)
+Box.test(resid(arima313_x2), type = "Ljung-Box", lag = 15)
+Box.test(resid(arima313_x2), type = "Ljung-Box", lag = 20)
+Box.test(resid(arima313_x2), type = "Ljung-Box", lag = 25)
 ```
 
 -\> Very large p-values: The residual is white-noise
@@ -557,109 +745,34 @@ plot(bj_pvalues, type='l')
 abline(h=0.05, col='red')
 ```
 
-Model ARIMA(5,1,1)
-
-```{r}
-
-arima511_x2 <- Arima(Data$x2,  # variable	
-                  order = c(5, 1, 1),  # (p,d,q) parameters
-                  include.constant = TRUE)  # including a constant
-```
-
-```{r}
-coeftest(arima511_x2)
-```
-
-ARIMA(4,1,0)
-
-```{r}
-arima410_x2 <- Arima(Data$x2,  # variable	
-                  order = c(4, 1, 0),  # (p,d,q) parameters
-                  include.constant = TRUE)  # including a constant
-```
-
-```{r}
-coeftest(arima410_x2)
-```
-
-ARIMA(3,1,0).
-
-```{r}
-arima310_x2 <- Arima(Data$x2,  # variable	
-                  order = c(3, 1, 0),  # (p,d,q) parameters
-                  include.constant = TRUE)  # including a constant
-
-coeftest(arima310_x2)
-```
-
 ### Step 4. Evaluate Model
 
 ```{r}
-AIC(arima510_x2,arima510_2_x2, arima511_x2, arima410_x2, arima310_x2)
-BIC(arima510_x2, arima510_2_x2, arima511_x2, arima410_x2, arima310_x2)
+AIC(arima510_x2,arima511_x2,
+    arima410_x2,  
+    arima310_x2, arima313_x2)
 
+```
+
+-\> Suggestion model: arima313_x2 - ARIMA(3,1,3)
+
+```{r}
+BIC(arima510_x2,arima511_x2,
+    arima410_x2,  
+    arima310_x2, arima313_x2)
 ```
 
 -\> Suggestion model: arima510_x2 - ARIMA(5,1,0)
 
-Cross check with Auto Correlation:
+***Conclusion:***
 
-```{r}
+From the perspective of sensibility, the ARIMA(5,1,0) seems to be the
+most attractive one:
 
-arima.best.AIC <- 
-  auto.arima(Data$x2,
-             d = 1,             # parameter d of ARIMA model
-             max.p = 6,         # Maximum value of p
-             max.q = 6,         # Maximum value of q
-             max.order = 12,    # maximum p+q
-             start.p = 1,       # Starting value of p in stepwise procedure
-             start.q = 1,       # Starting value of q in stepwise procedure
-             ic = "aic",        # Information criterion to be used in model selection.
-             stepwise = FALSE,  # if FALSE considers all models
-             allowdrift = TRUE, # include a constant
-             trace = TRUE)      # show summary of all models considered
-```
+all terms are significant, residuals are white noise and we observe low
+values of information criteria (IC).
 
-Return: Best model: ARIMA(3,1,3)
-
-```{r}
-arima313_x2 <- Arima(Data$x2,  # variable	
-                  order = c(3, 1, 3),  # (p,d,q) parameters
-                  include.constant = TRUE)  # including a constant
-```
-
-```{r}
-AIC(arima510_x2,arima313_x2)
-BIC(arima510_x2,arima313_x2)
-```
-
-```{r}
-arima.best.BIC <- 
-  auto.arima(Data$x2,
-             d = 1,             # parameter d of ARIMA model
-             max.p = 6,         # Maximum value of p
-             max.q = 6,         # Maximum value of q
-             max.order = 12,    # maximum p+q
-             start.p = 1,       # Starting value of p in stepwise procedure
-             start.q = 1,       # Starting value of q in stepwise procedure
-             ic = "bic",        # Information criterion to be used in model selection.
-             stepwise = FALSE,  # if FALSE considers all models
-             allowdrift = TRUE, # include a constant
-             trace = TRUE)      # show summary of all models considered
-```
-
-Return: Best model: ARIMA(3,1,2)
-
-```{r}
-arima312_x2 <- Arima(Data$x2,  # variable	
-                  order = c(3, 1, 2),  # (p,d,q) parameters
-                  include.constant = TRUE)  # including a constant
-```
-
-```{r}
-AIC(arima510_x2,arima313_x2, arima312_x2)
-BIC(arima510_x2,arima313_x2,arima312_x2 )
-```
+-\> Suggestion model: arima510_x2 - ARIMA(5,1,0)
 
 ## 4.3 ARIMA Forecast for X1 & X2
 
@@ -846,7 +959,7 @@ forecasts_x2_data <- data.frame(f_mean = as.numeric(forecasts_x2$mean),
 head(forecasts_x2_data,30)
 ```
 
-Adding real value X1 below the current Dataset:
+Adding real value X2 below the current Dataset:
 
 ```{r}
 Data_x2 <- rbind(Data[, "x2"], oos_x2)
@@ -904,7 +1017,16 @@ apply(Data_x2_Eva[, c("mae", "mse", "mape", "amape")], 2, FUN = median)
 
 ## 5.1. Johansen Cointegration Test
 
-We will assume the K=5 lag structure:
+Determine the lag for Johansen test:
+
+```{r}
+VARselect(Data[,1:2], 
+          lag.max = 7)
+```
+
+Three out of four tests suggests K = 6.
+
+We will choose the K=6 lag structure:
 
 ```{r}
 johan.test.trace <- 
@@ -913,7 +1035,7 @@ ca.jo(Data[,1:2], # data
         # "const" for constant term in cointegrating equation and 
         # "trend" for trend variable in cointegrating equation
         type = "trace",  # type of the test: trace or eigen
-        K = 5           # lag order of the series (levels) in the VAR
+        K = 6           # lag order of the series (levels) in the VAR
 )
 
 summary(johan.test.trace) 
@@ -923,13 +1045,18 @@ cbind(summary(johan.test.trace)@teststat,
 summary(johan.test.trace)@cval)
 ```
 
-Test Statistic \< Critical Value: CANNOT reject the null Test Statistic
-\> Critical Value: reject the null First we start with r=0, (no
-cointegrating vector): t-test statistic \> Critical value: we reject the
-null hypothesis about NO cointerating vector. Next, we test the
-hypothesis of r=1: Test Statistic \< Critical Value: we CANNOT reject
-the null about 1 cointegrating vector. The model has ONLY 1
-cointegrating vector.
+Test Statistic \< Critical Value: CANNOT reject the null
+
+Test Statistic \> Critical Value: reject the null
+
+First we start with r=0, (no cointegrating vector): t-test statistic \>
+Critical value: we reject the null hypothesis about NO cointerating
+vector.
+
+Next, we test the hypothesis of r=1: Test Statistic \< Critical Value:
+we CANNOT reject the null about 1 cointegrating vector.
+
+The model has ONLY 1 cointegrating vector.
 
 ```{r}
 summary(johan.test.trace)@V
@@ -950,7 +1077,7 @@ johan.test.eigen <-
         # "const" for constant term in cointegrating equation and 
         # "trend" for trend variable in cointegrating equation
         type = "eigen",  # type of the test: trace or eigen
-        K = 5           # lag order of the series (levels) in the VAR
+        K = 6           # lag order of the series (levels) in the VAR
 ) 
 summary(johan.test.eigen) 
 ```
@@ -963,73 +1090,84 @@ Define the specification of the VECM model, with cointegrating vector
 from either trace or eigen test from Johansen test.
 
 ```{r}
-Data.vec5 <- cajorls(johan.test.eigen, # defined specification
+Data.vec6 <- cajorls(johan.test.eigen, # defined specification
                         r = 1) # number of cointegrating vectors
 
-summary(Data.vec5)
+summary(Data.vec6)
 ```
 
 Summary results:
 
 ```{r}
-summary(Data.vec5$rlm)
+summary(Data.vec6$rlm)
 ```
 
 extract the cointegrating vector:
 
 ```{r}
-Data.vec5$beta
+Data.vec6$beta
 ```
 
-Conclusion about whether Error Correction Mechanism work:
+extract the adjustment coefficients (check for sign to determine whether
+ECM works or not):
+
+```{r}
+johan.test.eigen@W
+```
+
+Conclusion about whether Error Correction Mechanism work: The adjustment
+Coeff has different sign here -\> ECM works.
 
 Reparametrizing the VEC model into VAR:
 
 ```{r}
-Data.vec5.asVAR <- vec2var(johan.test.eigen, r = 1)
+Data.vec6.asVAR <- vec2var(johan.test.eigen, r = 1)
 ```
 
 Check result:
 
 ```{r}
-Data.vec5.asVAR
+Data.vec6.asVAR
 ```
 
 Calculate and plot Impulse Response Functions:
 
 ```{r}
-plot(irf(Data.vec5.asVAR, n.ahead = 36), ask = FALSE)
+plot(irf(Data.vec6.asVAR, n.ahead = 36), ask = FALSE)
 ```
+
+The residuals seem to be stable: first increases then decreases.
 
 Perform variance decomposition:
 
 ```{r}
-plot(fevd(Data.vec5.asVAR, n.ahead = 36), ask = FALSE)
+plot(fevd(Data.vec6.asVAR, n.ahead = 36), ask = FALSE)
 ```
 
 Check if model residuals are autocorrelated or not: Residuals can be
 extracted only from the VAR reparametrized model.
 
 ```{r}
-head(residuals(Data.vec5.asVAR))
-serial.test(Data.vec5.asVAR)
+head(residuals(Data.vec6.asVAR))
+serial.test(Data.vec6.asVAR)
 ```
 
-p-value = 0.0831 \> p-critical = 5% We fail to reject about the null
-hypothesis about no-autocorrelation.
+p-value = 0.6616 \> p-critical = 5%
 
--\> There is no auto-correlation.
+The null about no-autocorrelation is fail to Reject.
+
+=\> There is no auto-correlation in Residuals.
 
 Plot ACF and PACF for the model:
 
 ```{r}
-plot(serial.test(Data.vec5.asVAR))
+plot(serial.test(Data.vec6.asVAR))
 ```
 
 Checking the Nomarlity for x1 and x2 by creating Histogram:
 
 ```{r}
-Data.vec5.asVAR %>%
+Data.vec6.asVAR %>%
   residuals() %>%
   as_tibble() %>%
   ggplot(aes(`resids of x1`)) +
@@ -1037,8 +1175,8 @@ Data.vec5.asVAR %>%
                  colour = "black", 
                  fill = "pink") +
   stat_function(fun = dnorm, 
-                args = list(mean = mean(residuals(Data.vec5.asVAR)[, 1]), 
-                            sd = sd(residuals(Data.vec5.asVAR)[, 1]))) +
+                args = list(mean = mean(residuals(Data.vec6.asVAR)[, 1]), 
+                            sd = sd(residuals(Data.vec6.asVAR)[, 1]))) +
   theme_bw() + 
   labs(
     title = "Density of x1 residuals", 
@@ -1048,7 +1186,7 @@ Data.vec5.asVAR %>%
 ```
 
 ```{r}
-Data.vec5.asVAR %>%
+Data.vec6.asVAR %>%
   residuals() %>%
   as_tibble() %>%
   ggplot(aes(`resids of x2`)) +
@@ -1056,8 +1194,8 @@ Data.vec5.asVAR %>%
                  colour = "black", 
                  fill = "pink") +
   stat_function(fun = dnorm, 
-                args = list(mean = mean(residuals(Data.vec5.asVAR)[, 2]), 
-                            sd = sd(residuals(Data.vec5.asVAR)[, 2]))) +
+                args = list(mean = mean(residuals(Data.vec6.asVAR)[, 2]), 
+                            sd = sd(residuals(Data.vec6.asVAR)[, 2]))) +
   theme_bw() + 
   labs(
     title = "Density of x2 residuals", 
@@ -1069,16 +1207,17 @@ Data.vec5.asVAR %>%
 We can also check it formally by using the Jarque-Bera (JB) test.
 
 ```{r}
-normality.test(Data.vec5.asVAR)
+normality.test(Data.vec6.asVAR)
 ```
 
-p-value \> 0.05 =\> Fail to reject Ho about the normality Conclusion:
-the residual has a normal distribution.
+p-value \> 0.05 =\> Fail to reject Ho about the normality
+
+Conclusion: the residual has a normal distribution.
 
 ## 5.3 VECM Forecasting
 
 ```{r}
-Data.vec5.fore <- 
+Data.vec6.fore <- 
   predict(
     vec2var(
       johan.test.eigen, 
@@ -1086,19 +1225,19 @@ Data.vec5.fore <-
     n.ahead = 30, # forecast horizon
     ci = 0.95)    # confidence level for intervals
 
-summary(Data.vec5.fore)
+summary(Data.vec6.fore)
 ```
 
 VEC forecasts for x1
 
 ```{r}
-Data.vec5.fore$fcst$x1
+Data.vec6.fore$fcst$x1
 ```
 
 VEC forecasts for x2
 
 ```{r}
-Data.vec5.fore$fcst$x2
+Data.vec6.fore$fcst$x2
 ```
 
 Lets store it as an xts object. The correct set of dates (index) can be
@@ -1109,7 +1248,7 @@ tail(index(out_of_sample), 30)
 ```
 
 ```{r}
-x1_forecast <- xts(Data.vec5.fore$fcst$x1[,-4], 
+x1_forecast <- xts(Data.vec6.fore$fcst$x1[,-4], 
                     # we exclude the last column with CI
                     tail(index(out_of_sample), 30))
 ```
@@ -1123,7 +1262,7 @@ names(x1_forecast) <- c("x1_fore", "x1_lower", "x1_upper")
 Apply similarly for x2:
 
 ```{r}
-x2_forecast <- xts(Data.vec5.fore$fcst$x2[, -4],
+x2_forecast <- xts(Data.vec6.fore$fcst$x2[, -4],
                     # we exclude the last column with CI
                     tail(index(out_of_sample), 30))
 
@@ -1217,4 +1356,10 @@ result %>%
 
 ```
 
-Conclusion: The forecasts from ARIMA model outperforms that of VECM.
+**Conclusion:**
+
+For Timeseries x1: The forecasts from VECM model outperforms that of
+ARIMA.
+
+For Timeseries x2: The forecasts from ARIMA model outperforms that of
+VECM.
