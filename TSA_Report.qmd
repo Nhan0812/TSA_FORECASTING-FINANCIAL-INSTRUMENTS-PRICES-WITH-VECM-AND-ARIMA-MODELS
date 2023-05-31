@@ -1187,14 +1187,14 @@ Data.fore2$amape.x2 <-  abs(Data.fore2$x2 - Data.fore2$x2_fore)/(Data.fore2$x2 +
 
 and calculate its averages
 ```{r}
-VECM_x1 <- colMeans(Data.fore2[, c("mae.x1", 
+VAR_x1 <- colMeans(Data.fore2[, c("mae.x1", 
                       "mse.x1",
                       "mape.x1",
                       "amape.x1")], na.rm = TRUE)
 ```
 
 ```{r}
-VECM_x2 <- colMeans(Data.fore2[, c("mae.x2", 
+VAR_x2 <- colMeans(Data.fore2[, c("mae.x2", 
                       "mse.x2",
                       "mape.x2",
                       "amape.x2")], na.rm = TRUE)  
@@ -1202,9 +1202,9 @@ VECM_x2 <- colMeans(Data.fore2[, c("mae.x2",
 
 # 6. Comparing Models
 
-Comparing VECM model's forecasts with ARIMAs:
+Comparing VAR model's forecasts with ARIMAs:
 ```{r}
-result <- rbind(ARIMA_x1,VECM_x1, ARIMA_x2,VECM_x2)
+result <- rbind(ARIMA_x1,VAR_x1, ARIMA_x2,VAR_x2)
 
 result %>%
   knitr::kable(digits = 4) %>%
@@ -1216,10 +1216,10 @@ result %>%
 
 **Conclusion:**
 
-For Timeseries x1: The forecasts from VECM model outperforms that of
+For Timeseries x1: The forecasts from VAR model outperforms that of
 ARIMA.
 
 For Timeseries x2: The forecasts from ARIMA model outperforms that of
-VECM.
+VAR.
 
 

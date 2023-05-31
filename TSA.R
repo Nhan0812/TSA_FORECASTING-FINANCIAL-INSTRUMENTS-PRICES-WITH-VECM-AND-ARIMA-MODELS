@@ -555,7 +555,7 @@ Data_x1_Eva$amape <-  abs((Data_x1_Eva$x1 - Data_x1_Eva$f_mean)/(Data_x1_Eva$x1 
 Data_x1_Eva
 
 ARIMA_x1 <- colMeans(Data_x1_Eva[, c("mae", "mse", "mape", "amape")])
-apply(Data_x1_Eva[, c("mae", "mse", "mape", "amape")], 2, FUN = median)
+#apply(Data_x1_Eva[, c("mae", "mse", "mape", "amape")], 2, FUN = median)
 
 ##########################################################################################
 #FORECAST X2
@@ -626,7 +626,8 @@ Data_x2_Eva$amape <-  abs((Data_x2_Eva$x2 - Data_x2_Eva$f_mean)/(Data_x2_Eva$x2 
 Data_x2_Eva
 
 ARIMA_x2 <- colMeans(Data_x2_Eva[, c("mae", "mse", "mape", "amape")])
-apply(Data_x2_Eva[, c("mae", "mse", "mape", "amape")], 2, FUN = median)
+ARIMA_x2
+#apply(Data_x2_Eva[, c("mae", "mse", "mape", "amape")], 2, FUN = median)
 
 #7. Johansen cointegration test
 
@@ -843,19 +844,19 @@ Data.fore2$amape.x2 <-  abs(Data.fore2$x2 - Data.fore2$x2_fore)/(Data.fore2$x2 +
 
 # and calculate its averages
 
-VECM_x1 <- colMeans(Data.fore2[, c("mae.x1", 
+VAR_x1 <- colMeans(Data.fore2[, c("mae.x1", 
                       "mse.x1",
                       "mape.x1",
                       "amape.x1")], na.rm = TRUE)
 
-VECM_x2 <- colMeans(Data.fore2[, c("mae.x2", 
+VAR_x2 <- colMeans(Data.fore2[, c("mae.x2", 
                       "mse.x2",
                       "mape.x2",
                       "amape.x2")], na.rm = TRUE)  
 
-#6. Comparing VECM model’s forecasts with ARIMAs:
+#6. Comparing VAR model’s forecasts with ARIMAs:
 
-result <- rbind(ARIMA_x1,VECM_x1, ARIMA_x2,VECM_x2)
+result <- rbind(ARIMA_x1,VAR_x1, ARIMA_x2,VAR_x2)
 
 result %>%
   knitr::kable(digits = 4) %>%
@@ -867,10 +868,10 @@ result %>%
 #Conclusion: 
 
 #For Timeseries x1:
-#The forecasts from VECM model outperforms that of ARIMA.
+#The forecasts from VAR model outperforms that of ARIMA.
 
 #For Timeseries x2:
-#The forecasts from ARIMA model outperforms that of VECM.
+#The forecasts from ARIMA model outperforms that of VAR.
 
 #####################################################################################
 ## Additional Task
