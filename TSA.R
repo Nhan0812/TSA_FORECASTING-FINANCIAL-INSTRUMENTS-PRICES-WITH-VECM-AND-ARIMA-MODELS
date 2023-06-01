@@ -126,13 +126,28 @@ testdf(variable = Data$dx2,
 
 #3. Estimating the Cointegrated Vector:
 
-model.coint <- lm(x1 ~ x2, data = Data)
+#Granger Causality Test
+#Ho:	X does not granger cause Y
+#H1:	X granger causes Y
+
+grangertest(x1 ~ x2,
+            data = Data,
+            order = 3) # lag assumed
+#p-value is big, we cant reject Ho that X2 does not granger cause X1.
+
+grangertest(x2 ~ x1,
+            data = Data,
+            order = 3) # lag assumed
+#p-value is big, we reject Ho, and conclude that X1 does granger cause X2.
+
+#Linear Model Estimation
+model.coint <- lm(x2 ~ x1, data = Data)
 
 #Examine the model summary:
 summary(model.coint)
 
-#Both the intercept and Coefficient for x2 are statistically significant.
-#The model is significantly explained by x2.
+#Both the intercept and Coefficient for x1 are statistically significant.
+#The model is significantly explained by x1.
 
 #We further test the stationary of the residuals:
 testdf(variable = residuals(model.coint), max.augmentations = 3)
@@ -141,9 +156,27 @@ testdf(variable = residuals(model.coint), max.augmentations = 3)
 #The result is that non-stationarity of residuals is STRONGLY REJECTED, 
 #so residuals are stationary, which means that x1 and x2 are cointegrated.
 
-#The cointegrating vector is [1, -29.853 , -0.713]
+#The cointegrating vector is [1, 16.127 , -1.145]
 
-#which defines the cointegrating relationship as: 1 * x1 - 29.853 - 0.713 * x2.
+#which defines the cointegrating relationship as: 1 * x2 + 16.127 - 1.145 * x1.
+
+#Create first lags of residuals and adding them to the dataset
+Data$lresid <- lag.xts(residuals(model.coint))
+
+#Estimating ECM 
+#As the intercept is insignificant, we can remove it. 
+model.ecm <- lm(dx2 ~ dx1 + lresid -1, data = Data) 
+
+summary(model.ecm)
+
+#The parameter 0.021 describes a short term relationship between x1 and x2.
+
+#The parameter 1.145 describes a long term relationship between x1 and x2.
+
+#The value of -0.144 is the estimate of the adjustment coefficient. 
+#Its sign is negative and this value means that 0.139 of the unexpected error (increase in gap) 
+#will be corrected in the next period, so any unexpected deviation should be corrected 
+#finally on average within about 6.9 periods.
 
 # 4. Applying Box-Jenkins procedure for Time Series X1:
 
@@ -844,19 +877,19 @@ Data.fore2$amape.x2 <-  abs(Data.fore2$x2 - Data.fore2$x2_fore)/(Data.fore2$x2 +
 
 # and calculate its averages
 
-VAR_x1 <- colMeans(Data.fore2[, c("mae.x1", 
+VECM_x1 <- colMeans(Data.fore2[, c("mae.x1", 
                       "mse.x1",
                       "mape.x1",
                       "amape.x1")], na.rm = TRUE)
 
-VAR_x2 <- colMeans(Data.fore2[, c("mae.x2", 
+VECM_x2 <- colMeans(Data.fore2[, c("mae.x2", 
                       "mse.x2",
                       "mape.x2",
                       "amape.x2")], na.rm = TRUE)  
 
 #6. Comparing VAR model’s forecasts with ARIMAs:
 
-result <- rbind(ARIMA_x1,VAR_x1, ARIMA_x2,VAR_x2)
+result <- rbind(ARIMA_x1,VECM_x1, ARIMA_x2,VECM_x2)
 
 result %>%
   knitr::kable(digits = 4) %>%
@@ -868,10 +901,15 @@ result %>%
 #Conclusion: 
 
 #For Timeseries x1:
-#The forecasts from VAR model outperforms that of ARIMA.
+#The forecasts from VECM model outperforms that of ARIMA.
 
 #For Timeseries x2:
-#The forecasts from ARIMA model outperforms that of VAR.
+#The forecasts from ARIMA model outperforms that of VECM.
+
+
+
+
+
 
 #####################################################################################
 ## Additional Task
